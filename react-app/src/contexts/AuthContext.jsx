@@ -14,63 +14,231 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Check if user is logged in on app start
-    const userData = localStorage.getItem('currentUser')
-    if (userData) {
-      setCurrentUser(JSON.parse(userData))
+  // Check if localStorage is available (mobile Safari private mode issues)
+  const isStorageAvailable = () => {
+    try {
+      const testKey = '__storage_test__'
+      localStorage.setItem(testKey, 'test')
+      localStorage.removeItem(testKey)
+      return true
+    } catch (e) {
+      return false
     }
-    setLoading(false)
+  }
+
+  // Safe localStorage operations with fallbacks
+  const safeSetItem = (key, value) => {
+    try {
+      if (isStorageAvailable()) {
+        localStorage.setItem(key, value)
+        return true
+      } else {
+        console.warn('localStorage not available, data will not persist')
+        return false
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error)
+      return false
+    }
+  }
+
+  const safeGetItem = (key, defaultValue = null) => {
+    try {
+      if (isStorageAvailable()) {
+        const item = localStorage.getItem(key)
+        return item !== null ? item : defaultValue
+      }
+      return defaultValue
+    } catch (error) {
+      console.error('Error reading from localStorage:', error)
+      return defaultValue
+    }
+  }
+
+  useEffect(() => {
+    // Check if user is logged in on app start with mobile-safe storage access
+    const loadUser = async () => {
+      try {
+        // Test localStorage availability (can fail on mobile in private mode)
+        if (!isStorageAvailable()) {
+          console.warn('localStorage not available - using session storage')
+          setLoading(false)
+          return
+        }
+
+        const userData = localStorage.getItem('currentUser')
+        if (userData) {
+          const parsedUser = JSON.parse(userData)
+          // Validate user data structure
+          if (parsedUser && parsedUser.id && parsedUser.email) {
+            setCurrentUser(parsedUser)
+          } else {
+            // Clean up corrupted user data
+            localStorage.removeItem('currentUser')
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user:', error)
+        // Clean up on parse error
+        try {
+          localStorage.removeItem('currentUser')
+        } catch (e) {
+          console.error('Cannot access localStorage:', e)
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUser()
   }, [])
 
   const signup = async (userData) => {
     try {
-      // In a real app, this would be an API call
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
+      console.log('Signup attempt for:', userData.email) // Debug log
       
-      // Check if user already exists
-      if (users.find(u => u.email === userData.email)) {
+      if (!isStorageAvailable()) {
+        throw new Error('Storage not available. Please enable cookies and try again.')
+      }
+
+      // Normalize email
+      const normalizedEmail = (userData.email || '').trim().toLowerCase()
+      
+      if (!normalizedEmail) {
+        throw new Error('Please enter a valid email address')
+      }
+
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      // Check if user already exists with normalized email comparison
+      const existingUser = users.find(u => {
+        const userEmail = (u.email || '').trim().toLowerCase()
+        return userEmail === normalizedEmail
+      })
+      
+      if (existingUser) {
         throw new Error('User already exists with this email')
       }
 
       const newUser = {
         id: Date.now().toString(),
         ...userData,
+        email: normalizedEmail, // Store normalized email
         createdAt: new Date().toISOString(),
         menus: []
       }
 
-      users.push(newUser)
-      localStorage.setItem('users', JSON.stringify(users))
-      localStorage.setItem('currentUser', JSON.stringify(newUser))
-      setCurrentUser(newUser)
+      const updatedUsers = [...users, newUser]
+      const usersString = JSON.stringify(updatedUsers)
+      const userString = JSON.stringify(newUser)
       
+      // Save with error handling
+      const usersSaved = safeSetItem('users', usersString)
+      const currentUserSaved = safeSetItem('currentUser', userString)
+      
+      if (!usersSaved || !currentUserSaved) {
+        throw new Error('Unable to create account. Please check your browser settings.')
+      }
+      
+      setCurrentUser(newUser)
+      console.log('Signup successful') // Debug log
       return newUser
     } catch (error) {
+      console.error('Signup error:', error) // Debug log
       throw error
     }
   }
 
   const login = async (email, password) => {
     try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const user = users.find(u => u.email === email && u.password === password)
+      console.log('Login attempt for:', email) // Debug log
+      
+      if (!isStorageAvailable()) {
+        throw new Error('Storage not available. Please enable cookies and try again.')
+      }
+
+      // Trim and normalize inputs
+      const normalizedEmail = email.trim().toLowerCase()
+      const normalizedPassword = password.trim()
+      
+      if (!normalizedEmail || !normalizedPassword) {
+        throw new Error('Please enter both email and password')
+      }
+
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      console.log('Checking against users:', users.length, 'users found') // Debug log
+      
+      // More thorough user matching with normalized comparison
+      const user = users.find(u => {
+        const userEmail = (u.email || '').trim().toLowerCase()
+        const userPassword = (u.password || '').trim()
+        return userEmail === normalizedEmail && userPassword === normalizedPassword
+      })
       
       if (!user) {
+        console.log('No matching user found') // Debug log
         throw new Error('Invalid email or password')
       }
 
-      localStorage.setItem('currentUser', JSON.stringify(user))
+      console.log('User found, setting session') // Debug log
+      
+      // Set user with retry mechanism
+      const userString = JSON.stringify(user)
+      const saveSuccess = safeSetItem('currentUser', userString)
+      
+      if (!saveSuccess) {
+        throw new Error('Unable to save session. Please check your browser settings.')
+      }
+      
       setCurrentUser(user)
+      console.log('Login successful') // Debug log
       return user
     } catch (error) {
+      console.error('Login error:', error) // Debug log
       throw error
     }
   }
 
   const logout = () => {
-    localStorage.removeItem('currentUser')
-    setCurrentUser(null)
+    try {
+      if (isStorageAvailable()) {
+        localStorage.removeItem('currentUser')
+      }
+      setCurrentUser(null)
+      console.log('Logout successful') // Debug log
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Force logout even if localStorage fails
+      setCurrentUser(null)
+    }
+  }
+
+  // Validate current session
+  const validateSession = () => {
+    try {
+      if (!currentUser) return false
+      
+      const userData = safeGetItem('currentUser')
+      if (!userData) {
+        setCurrentUser(null)
+        return false
+      }
+      
+      const parsedUser = JSON.parse(userData)
+      if (!parsedUser || parsedUser.id !== currentUser.id) {
+        setCurrentUser(null)
+        return false
+      }
+      
+      return true
+    } catch (error) {
+      console.error('Session validation error:', error)
+      setCurrentUser(null)
+      return false
+    }
   }
 
   const updateUserProfile = (updates) => {
@@ -291,7 +459,9 @@ export function AuthProvider({ children }) {
     updateUserProfile,
     saveMenu,
     updateMenu,
-    deleteMenu
+    deleteMenu,
+    validateSession,
+    isStorageAvailable: isStorageAvailable()
   }
 
   return (

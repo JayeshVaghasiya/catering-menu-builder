@@ -6,6 +6,7 @@ import BrandingEditor from './components/BrandingEditor'
 import MenuEditor from './components/MenuEditor'
 import Preview from './components/Preview'
 import TemplateGallery from './components/TemplateGallery'
+import MobileDebugger from './components/MobileDebugger'
 import sampleGanapati from './assets/sample-ganapati.jpg'
 
 function MenuCreator({ editingMenu = null, onSave, onCancel }) {
@@ -416,6 +417,7 @@ function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <MobileDebugger />
     </AuthProvider>
   )
 }
