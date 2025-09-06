@@ -9,7 +9,7 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
   const brandingRef = useRef(null)
   const menuRefs = useRef([])
 
-  // Debug log to check brand data
+  // Component body starts here
   console.log('Preview component - brand data:', brand)
   console.log('Preview component - services:', brand?.services)
 
@@ -142,148 +142,210 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
       
       document.body.appendChild(tempBrandingDiv)
       
-      // Add branding page
-      const bCanvas = await html2canvas(tempBrandingDiv, { scale: 2 })
-      const bData = bCanvas.toDataURL('image/png')
-      pdf.addImage(bData, 'PNG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
+      // Add branding page with optimized quality for smaller file size
+      const bCanvas = await html2canvas(tempBrandingDiv, { 
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        letterRendering: true,
+        removeContainer: true
+      })
+      const bData = bCanvas.toDataURL('image/jpeg', 0.8)
+      pdf.addImage(bData, 'JPEG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
       
       document.body.removeChild(tempBrandingDiv)
       
-      // Add each meal type as a separate page
+      // Add each meal type as separate pages with automatic pagination
       for (let i = 0; i < mealTypes.length; i++) {
         const mealType = mealTypes[i]
         
-        // Create temporary full-size menu element for PDF
-        const tempMenuDiv = document.createElement('div')
-        tempMenuDiv.style.width = '794px'
-        tempMenuDiv.style.minHeight = '1122px'
-        tempMenuDiv.style.background = colors.menuBg
-        tempMenuDiv.style.position = 'absolute'
-        tempMenuDiv.style.left = '-9999px'
+        // Split categories into chunks to avoid overcrowding
+        const maxCategoriesPerPage = 3 // Maximum 3 categories per page for good quality
+        const categoryChunks = []
         
-        // Create menu content for this meal type
-        tempMenuDiv.innerHTML = `
-          <div style="min-height: 100vh; background: linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%); 
-                     padding: 40px; display: flex; flex-direction: column; box-sizing: border-box;">
-            
-            <!-- Clean Header with Sample Images -->
-            <div style="background: linear-gradient(135deg, ${colors.headerColor} 0%, #FB923C 100%); 
-                        border-radius: 20px; padding: 40px; text-align: center; position: relative; 
-                        margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-              
-              <!-- Corner Food Images -->
-              <div style="position: absolute; top: 15px; left: 15px; width: 60px; height: 60px; 
-                          border-radius: 50%; overflow: hidden; border: 3px solid white; 
-                          box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                <img src="/src/assets/sample-1.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
-              </div>
-              <div style="position: absolute; top: 15px; right: 15px; width: 60px; height: 60px; 
-                          border-radius: 50%; overflow: hidden; border: 3px solid white; 
-                          box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                <img src="/src/assets/sample-2.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
-              </div>
-              
-              <h2 style="font-size: 36px; font-weight: bold; color: white; margin: 0; 
-                         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
-                ${mealType.name} Menu
-              </h2>
-              ${mealType.occasion ? `
-                <p style="font-size: 24px; color: white; margin: 8px 0; 
-                           text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
-                  🎉 ${mealType.occasion}
-                </p>
-              ` : ''}
-              <p style="font-size: 20px; color: white; margin: 10px 0; 
-                         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
-                ${brand.businessName || 'Your Business Name'}
-              </p>
-              <div style="width: 100px; height: 2px; background: white; margin: 15px auto; border-radius: 1px;"></div>
-              <p style="font-size: 14px; color: rgba(255,255,255,0.9);">
-                ${mealType.date ? `📅 ${new Date(mealType.date).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}` : new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </p>
-            </div>
-            
-            <!-- Menu Categories Container - Flexible Content -->
-            <div style="flex: 1; display: flex; flex-direction: column;">
-              ${mealType.categories.map((cat, catIndex) => `
-                <div style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 25px; 
-                            box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-left: 5px solid ${colors.categoryColor};">
-                  
-                  <!-- Category Header -->
-                  <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                    <div style="width: 40px; height: 40px; background: ${colors.categoryColor}; 
-                                border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                                margin-right: 15px;">
-                      <span style="font-size: 20px; color: white;">${catIndex === 0 ? '🍛' : catIndex === 1 ? '🥘' : catIndex === 2 ? '🍚' : '🍽️'}</span>
-                    </div>
-                    <h3 style="font-size: 24px; font-weight: 600; color: ${colors.categoryColor}; margin: 0;">
-                      ${cat.name || 'Category'}
-                    </h3>
-                  </div>
-                  
-                  <!-- Simple Dishes List -->
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    ${cat.dishes.map(dish => `
-                      <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
-                        <div style="width: 8px; height: 8px; background: ${colors.categoryColor}; 
-                                    border-radius: 50%; flex-shrink: 0;"></div>
-                        <span style="font-size: 16px; line-height: 1.4; color: ${colors.textColor}; font-weight: 400;">
-                          ${dish || 'Dish'}
-                        </span>
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-            
-            <!-- Footer - Thank You Message at Bottom -->
-            <div style="background: linear-gradient(135deg, #F8F9FA 0%, white 100%); 
-                        border-radius: 15px; padding: 25px; text-align: center; margin-top: auto; 
-                        border: 1px solid #E5E7EB; position: relative;">
-              
-              <!-- Bottom Corner Images -->
-              <div style="position: absolute; bottom: 15px; left: 15px; width: 50px; height: 50px; 
-                          border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
-                <img src="/src/assets/sample-3.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
-              </div>
-              <div style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; 
-                          border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
-                <img src="/src/assets/sample-5.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
-              </div>
-              
-              <h4 style="font-size: 16px; font-weight: 500; color: ${colors.categoryColor}; margin: 0 0 8px 0;">
-                Thank you for choosing ${brand.businessName || 'us'}!
-              </h4>
-              <p style="font-size: 12px; color: ${colors.textColor}; margin: 0;">
-                Authentic flavors for your special occasions
-              </p>
-            </div>
-          </div>
-        `
-        
-        document.body.appendChild(tempMenuDiv)
-        
-        // Add new page for each meal type
-        if (i > 0 || true) { // Always add a new page (even for first meal type after branding)
-          pdf.addPage()
+        for (let j = 0; j < mealType.categories.length; j += maxCategoriesPerPage) {
+          categoryChunks.push(mealType.categories.slice(j, j + maxCategoriesPerPage))
         }
         
-        const mCanvas = await html2canvas(tempMenuDiv, { scale: 2 })
-        const mData = mCanvas.toDataURL('image/png')
-        pdf.addImage(mData, 'PNG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
+        // If no categories, create one page anyway
+        if (categoryChunks.length === 0) {
+          categoryChunks.push([])
+        }
         
-        document.body.removeChild(tempMenuDiv)
+        // Create a page for each chunk of categories
+        for (let chunkIndex = 0; chunkIndex < categoryChunks.length; chunkIndex++) {
+          const categoriesForThisPage = categoryChunks[chunkIndex]
+          const isFirstPageOfMeal = chunkIndex === 0
+          const isLastPageOfMeal = chunkIndex === categoryChunks.length - 1
+          
+          // Create temporary full-size menu element for PDF
+          const tempMenuDiv = document.createElement('div')
+          tempMenuDiv.style.width = '794px'
+          tempMenuDiv.style.minHeight = '1122px'
+          tempMenuDiv.style.background = colors.menuBg
+          tempMenuDiv.style.position = 'absolute'
+          tempMenuDiv.style.left = '-9999px'
+          
+          // Create menu content for this page
+          tempMenuDiv.innerHTML = `
+            <div style="min-height: 100vh; background: linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%); 
+                       padding: 40px; display: flex; flex-direction: column; box-sizing: border-box;">
+              
+              <!-- Header (only on first page of each meal type) -->
+              ${isFirstPageOfMeal ? `
+                <div style="background: linear-gradient(135deg, ${colors.headerColor} 0%, #FB923C 100%); 
+                            border-radius: 20px; padding: 40px; text-align: center; position: relative; 
+                            margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                  
+                  <!-- Corner Food Images -->
+                  <div style="position: absolute; top: 15px; left: 15px; width: 90px; height: 90px; 
+                              border-radius: 50%; overflow: hidden; border: 3px solid white; 
+                              box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                    <img src="/src/assets/sample-1.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                  <div style="position: absolute; top: 15px; right: 15px; width: 90px; height: 90px; 
+                              border-radius: 50%; overflow: hidden; border: 3px solid white; 
+                              box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                    <img src="/src/assets/sample-2.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                  
+                  <h2 style="font-size: 36px; font-weight: bold; color: white; margin: 0; 
+                             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    ${mealType.name} Menu
+                  </h2>
+                  ${mealType.occasion ? `
+                    <p style="font-size: 24px; color: white; margin: 8px 0; 
+                               text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                      🎉 ${mealType.occasion}
+                    </p>
+                  ` : ''}
+                  <p style="font-size: 20px; color: white; margin: 10px 0; 
+                             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                    ${brand.businessName || 'Your Business Name'}
+                  </p>
+                  <div style="width: 100px; height: 2px; background: white; margin: 15px auto; border-radius: 1px;"></div>
+                  <p style="font-size: 14px; color: rgba(255,255,255,0.9);">
+                    ${mealType.date ? `📅 ${new Date(mealType.date).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}` : new Date().toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
+              ` : `
+                <!-- Continuation Header for subsequent pages -->
+                <div style="text-align: center; margin-bottom: 30px; padding: 20px; 
+                            border-bottom: 3px solid ${colors.categoryColor};">
+                  <h2 style="font-size: 28px; font-weight: bold; color: ${colors.categoryColor}; margin: 0;">
+                    ${mealType.name} Menu (continued)
+                  </h2>
+                  <p style="font-size: 16px; color: ${colors.textColor}; margin: 8px 0;">
+                    ${brand.businessName || 'Your Business Name'}
+                  </p>
+                </div>
+              `}
+              
+              <!-- Menu Categories Container - Spacious Layout -->
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                ${categoriesForThisPage.map((cat, catIndex) => `
+                  <div style="background: white; border-radius: 15px; padding: 35px; margin-bottom: 30px; 
+                              box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-left: 5px solid ${colors.categoryColor};">
+                    
+                    <!-- Category Header with more space -->
+                    <div style="display: flex; align-items: center; margin-bottom: 25px;">
+                      <div style="width: 45px; height: 45px; background: ${colors.categoryColor}; 
+                                  border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                  margin-right: 20px;">
+                        <span style="font-size: 22px; color: white;">${catIndex === 0 ? '🍛' : catIndex === 1 ? '🥘' : catIndex === 2 ? '🍚' : '🍽️'}</span>
+                      </div>
+                      <h3 style="font-size: 26px; font-weight: 600; color: ${colors.categoryColor}; margin: 0;">
+                        ${cat.name || 'Category'}
+                      </h3>
+                    </div>
+                    
+                    <!-- Dishes List with better spacing -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px;">
+                      ${cat.dishes.map(dish => `
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0;">
+                          <div style="width: 10px; height: 10px; background: ${colors.categoryColor}; 
+                                      border-radius: 50%; flex-shrink: 0;"></div>
+                          <span style="font-size: 18px; line-height: 1.5; color: ${colors.textColor}; font-weight: 400;">
+                            ${dish || 'Dish'}
+                          </span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                `).join('')}
+                
+                ${categoriesForThisPage.length === 0 ? `
+                  <div style="text-align: center; padding: 60px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🍽️</div>
+                    <h3 style="font-size: 24px; color: ${colors.categoryColor};">No categories in ${mealType.name}</h3>
+                    <p style="font-size: 16px; margin-top: 10px;">Add categories to see items here</p>
+                  </div>
+                ` : ''}
+              </div>
+              
+              <!-- Footer (only on last page of each meal type) -->
+              ${isLastPageOfMeal ? `
+                <div style="background: linear-gradient(135deg, #F8F9FA 0%, white 100%); 
+                            border-radius: 15px; padding: 25px; text-align: center; margin-top: auto; 
+                            border: 1px solid #E5E7EB; position: relative;">
+                  
+                  <!-- Bottom Corner Images -->
+                  <div style="position: absolute; bottom: 15px; left: 15px; width: 50px; height: 50px; 
+                              border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
+                    <img src="/src/assets/sample-3.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                  <div style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; 
+                              border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
+                    <img src="/src/assets/sample-5.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                  
+                  <h4 style="font-size: 16px; font-weight: 500; color: ${colors.categoryColor}; margin: 0 0 8px 0;">
+                    Thank you for choosing ${brand.businessName || 'us'}!
+                  </h4>
+                  <p style="font-size: 12px; color: ${colors.textColor}; margin: 0;">
+                    Authentic flavors for your special occasions
+                  </p>
+                </div>
+              ` : ''}
+            </div>
+          `
+          
+          document.body.appendChild(tempMenuDiv)
+          
+          // Add new page for each page (except the very first one after branding)
+          if (i > 0 || chunkIndex > 0) {
+            pdf.addPage()
+          }
+          
+          // Higher quality canvas settings for better text rendering (since pages have less content now)
+          const mCanvas = await html2canvas(tempMenuDiv, { 
+            scale: 2.5,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            letterRendering: true,
+            removeContainer: true
+          })
+          
+          // Use JPEG with high quality for smaller file size
+          const mData = mCanvas.toDataURL('image/jpeg', 0.8)
+          pdf.addImage(mData, 'JPEG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
+          
+          document.body.removeChild(tempMenuDiv)
+        }
       }
 
       // Add Special Notes Page if there are special notes
@@ -360,9 +422,18 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
         
         document.body.appendChild(tempNotesDiv)
         
-        const notesCanvas = await html2canvas(tempNotesDiv, { scale: 2 })
-        const notesData = notesCanvas.toDataURL('image/png')
-        pdf.addImage(notesData, 'PNG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
+        // Optimized canvas settings for special notes page
+        const notesCanvas = await html2canvas(tempNotesDiv, { 
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          letterRendering: true,
+          removeContainer: true
+        })
+        const notesData = notesCanvas.toDataURL('image/jpeg', 0.8)
+        pdf.addImage(notesData, 'JPEG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
         
         document.body.removeChild(tempNotesDiv)
       }
@@ -422,7 +493,7 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
           <p className="text-sm text-gray-600">
             Template: {template.charAt(0).toUpperCase() + template.slice(1)} • 
             {mealTypes.length} meal type{mealTypes.length !== 1 ? 's' : ''} • 
-            {mealTypes.length + 1} page{mealTypes.length !== 0 ? 's' : ''} (1 branding + {mealTypes.length} menu)
+            Auto-pagination for quality (max 3 categories per page)
           </p>
         </div>
         <button 
@@ -594,10 +665,10 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                   }}
                 >
                   {/* Corner Food Images */}
-                  <div className="absolute top-4 left-4 w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg">
+                  <div className="absolute top-4 left-4 w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-lg">
                     <img src="/src/assets/sample-1.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
-                  <div className="absolute top-4 right-4 w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg">
+                  <div className="absolute top-4 right-4 w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-lg">
                     <img src="/src/assets/sample-2.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
                   

@@ -11,6 +11,15 @@ import sampleGanapati from './assets/sample-ganapati.jpg'
 function MenuCreator({ editingMenu = null, onSave, onCancel }) {
   const { currentUser, saveMenu, updateMenu } = useAuth()
   
+  // Add storage cleanup function
+  const clearStorage = () => {
+    if (confirm('This will clear all stored menus and data. Are you sure?')) {
+      localStorage.clear()
+      alert('Storage cleared! Please refresh the page and sign in again.')
+      window.location.reload()
+    }
+  }
+  
   // Initialize with user's saved brand info or defaults
   const getInitialBrand = () => {
     if (editingMenu?.brand) {
@@ -247,6 +256,15 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
                 <span className="hidden sm:inline">Import</span>
                 <input type="file" accept="application/json" onChange={e=>importJSON(e.target.files[0])} className="hidden" />
               </label>
+              
+              <button 
+                onClick={clearStorage}
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
+                title="Clear all stored data if experiencing storage issues"
+              >
+                <span>🗑️</span>
+                <span className="hidden sm:inline">Clear</span>
+              </button>
               
               <button 
                 onClick={onCancel}
