@@ -84,15 +84,29 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      console.log('🔐 LOGIN ATTEMPT:', { email })
+      console.log('🔐 LOGIN ATTEMPT:', { 
+        email,
+        emailLength: email?.length,
+        passwordLength: password?.length,
+        hasEmail: !!email,
+        hasPassword: !!password,
+        emailType: typeof email,
+        passwordType: typeof password
+      })
       
       const usersData = safeGetItem('users', '[]')
       const users = JSON.parse(usersData)
       
+      console.log('📊 USER STORAGE DEBUG:', {
+        totalUsers: users.length,
+        userEmails: users.map(u => u.email),
+        searchingFor: email
+      })
+      
       const user = users.find(u => u.email === email && u.password === password)
       
       if (user) {
-        console.log('✅ LOGIN SUCCESS:', { email, userId: user.id })
+        console.log('✅ LOGIN SUCCESS:', { email, userId: user.id, businessName: user.businessName })
         
         // Clean up any test accounts when real user logs in successfully
         cleanupTestAccounts()
@@ -101,7 +115,16 @@ export function AuthProvider({ children }) {
         setCurrentUser(user)
         return user
       } else {
-        console.log('❌ LOGIN FAILED: Invalid credentials for', email)
+        console.log('❌ LOGIN FAILED - DETAILED DEBUG:', {
+          searchEmail: email,
+          searchPassword: password,
+          availableUsers: users.map(u => ({
+            email: u.email,
+            emailMatch: u.email === email,
+            passwordMatch: u.password === password,
+            bothMatch: u.email === email && u.password === password
+          }))
+        })
         throw new Error('Invalid credentials')
       }
     } catch (error) {

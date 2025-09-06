@@ -57,26 +57,49 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     setDebugInfo('')
 
     try {
-      if (!formData.email || !formData.password) {
+      // Trim inputs for quick login too
+      const trimmedEmail = formData.email.trim()
+      const trimmedPassword = formData.password.trim()
+      
+      if (!trimmedEmail || !trimmedPassword) {
         throw new Error('Please enter email and password for quick login')
       }
-      console.log('Using quick login method...')
-      await quickLogin(formData.email, formData.password)
-      console.log('Quick login successful')
-      onClose()
+      
+      console.log('⚡ QUICK LOGIN ATTEMPT - Sending to auth layer:', {
+        email: trimmedEmail,
+        emailLength: trimmedEmail.length,
+        passwordLength: trimmedPassword.length,
+        timestamp: new Date().toISOString()
+      })
+      
+      const result = await quickLogin(trimmedEmail, trimmedPassword)
+      console.log('✅ QUICK LOGIN SUCCESS RESPONSE:', result)
+      setDebugInfo(`✅ Quick login successful! Welcome ${result.businessName || result.email}`)
+      
+      setTimeout(() => {
+        onClose()
+      }, 1000)
     } catch (err) {
-      console.error('Quick login error:', err)
+      console.error('🚨 QUICK LOGIN ERROR:', {
+        message: err.message,
+        email: formData.email.trim(),
+        timestamp: new Date().toISOString()
+      })
+      
       setError(err.message)
-      setDebugInfo('Quick login creates or logs into an account automatically. If this fails, there may be a browser storage issue.')
+      setDebugInfo(`🔍 Quick Login Debug: ${err.message} | Email: "${formData.email.trim()}" | Time: ${new Date().toLocaleTimeString()}`)
     } finally {
       setLoading(false)
     }
   }
 
   const handleInputChange = (e) => {
+    // Trim input values to prevent whitespace issues
+    const trimmedValue = e.target.value.trim()
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: trimmedValue
     })
     setError('')
     setDebugInfo('')
@@ -89,50 +112,93 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     setDebugInfo('')
 
     try {
+      // Trim all input values before submission
+      const trimmedData = {
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+        businessName: formData.businessName.trim(),
+        ownerName: formData.ownerName.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim()
+      }
+
       // Mobile-specific debugging
-      console.log('Form submission started', {
+      console.log('🔍 FORM SUBMISSION DEBUG:', {
         isSignupMode,
-        email: formData.email,
+        originalEmail: formData.email,
+        trimmedEmail: trimmedData.email,
+        emailLength: trimmedData.email.length,
+        passwordLength: trimmedData.password.length,
         userAgent: navigator.userAgent,
-        storageAvailable: isStorageAvailable
+        storageAvailable: isStorageAvailable,
+        timestamp: new Date().toISOString()
       })
 
       if (isSignupMode) {
-        if (!formData.email || !formData.password || !formData.businessName || !formData.ownerName) {
+        if (!trimmedData.email || !trimmedData.password || !trimmedData.businessName || !trimmedData.ownerName) {
           throw new Error('Please fill in all required fields')
         }
-        console.log('Attempting signup...')
-        await signup(formData)
-        console.log('Signup successful')
+        
+        console.log('📝 SIGNUP ATTEMPT - Sending to auth layer:', {
+          email: trimmedData.email,
+          businessName: trimmedData.businessName,
+          ownerName: trimmedData.ownerName
+        })
+        
+        const result = await signup(trimmedData)
+        console.log('✅ SIGNUP SUCCESS RESPONSE:', result)
+        setDebugInfo(`✅ Account created successfully! Welcome ${result.businessName}`)
       } else {
-        if (!formData.email || !formData.password) {
+        if (!trimmedData.email || !trimmedData.password) {
           throw new Error('Please enter email and password')
         }
-        console.log('Attempting login...')
-        await login(formData.email, formData.password)
-        console.log('Login successful')
+        
+        console.log('🔐 LOGIN ATTEMPT - Sending to auth layer:', {
+          email: trimmedData.email,
+          emailLength: trimmedData.email.length,
+          passwordLength: trimmedData.password.length,
+          hasEmail: !!trimmedData.email,
+          hasPassword: !!trimmedData.password
+        })
+        
+        const result = await login(trimmedData.email, trimmedData.password)
+        console.log('✅ LOGIN SUCCESS RESPONSE:', result)
+        setDebugInfo(`✅ Login successful! Welcome back ${result.businessName || result.email}`)
       }
-      onClose()
+      
+      // Show success message briefly before closing
+      setTimeout(() => {
+        onClose()
+      }, 1000)
+      
     } catch (err) {
-      console.error('Auth error:', err)
+      console.error('🚨 AUTH ERROR DETAILS:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+        timestamp: new Date().toISOString(),
+        email: formData.email.trim(),
+        userAgent: navigator.userAgent
+      })
+      
       setError(err.message)
+      
+      // Display server response debug info for mobile debugging
+      setDebugInfo(`🔍 Debug Info: ${err.message} | Email: "${formData.email.trim()}" | Length: ${formData.email.trim().length} | Time: ${new Date().toLocaleTimeString()}`)
       
       // Add helpful debug info for mobile users
       if (err.message.includes('Storage not available')) {
         setDebugInfo('Try refreshing the page or enabling cookies in your browser settings. If using iOS Safari, disable Private Browsing mode.')
-      } else if (err.message.includes('Invalid email or password')) {
-        setDebugInfo('Double-check your email and password. Make sure caps lock is off.')
-      } else if (err.message.includes('localStorage')) {
-        setDebugInfo('Your browser storage may be full or disabled. Try clearing browser data.')
-      } else if (err.message.includes('Invalid email or password')) {
+      } else if (err.message.includes('Invalid credentials')) {
+        setDebugInfo(`❌ Login failed for "${formData.email.trim()}" - Check email/password. Email length: ${formData.email.trim().length}, Has spaces: ${formData.email !== formData.email.trim()}`)
+        
         // Only show Quick Login as last resort after failed login
         const isAndroid = /Android/i.test(navigator.userAgent)
         if (isAndroid) {
           setShowQuickLogin(true)
-          setDebugInfo('Double-check your email and password. If you keep having issues, try the "Emergency Login" button below as a last resort.')
-        } else {
-          setDebugInfo('Double-check your email and password. Make sure caps lock is off.')
         }
+      } else if (err.message.includes('localStorage')) {
+        setDebugInfo('Your browser storage may be full or disabled. Try clearing browser data.')
       }
     } finally {
       setLoading(false)
@@ -143,6 +209,7 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     setIsSignupMode(!isSignupMode)
     setError('')
     setDebugInfo('')
+    setShowQuickLogin(false) // Reset quick login display
     setFormData({
       email: '',
       password: '',
@@ -176,8 +243,17 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               <div className="font-medium">{error}</div>
               {debugInfo && (
-                <div className="text-sm mt-2 text-red-600">{debugInfo}</div>
+                <div className="text-xs mt-2 text-red-600 bg-red-100 p-2 rounded border font-mono">
+                  <strong>Debug Info:</strong> {debugInfo}
+                </div>
               )}
+            </div>
+          )}
+
+          {/* Success message display */}
+          {!error && debugInfo && debugInfo.includes('✅') && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+              <div className="font-medium">{debugInfo}</div>
             </div>
           )}
 
@@ -224,6 +300,9 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               placeholder="Enter your password"
               autoComplete={isSignupMode ? "new-password" : "current-password"}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
               required
             />
           </div>
