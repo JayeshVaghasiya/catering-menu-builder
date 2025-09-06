@@ -207,12 +207,12 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                   <div style="position: absolute; top: 15px; left: 15px; width: 90px; height: 90px; 
                               border-radius: 50%; overflow: hidden; border: 3px solid white; 
                               box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                    <img src="/src/assets/sample-1.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <img src="/sample-1.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
                   </div>
                   <div style="position: absolute; top: 15px; right: 15px; width: 90px; height: 90px; 
                               border-radius: 50%; overflow: hidden; border: 3px solid white; 
                               box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                    <img src="/src/assets/sample-2.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <img src="/sample-2.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
                   </div>
                   
                   <h2 style="font-size: 36px; font-weight: bold; color: white; margin: 0; 
@@ -308,11 +308,11 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                   <!-- Bottom Corner Images -->
                   <div style="position: absolute; bottom: 15px; left: 15px; width: 50px; height: 50px; 
                               border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
-                    <img src="/src/assets/sample-3.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <img src="/sample-3.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
                   </div>
                   <div style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; 
                               border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
-                    <img src="/src/assets/sample-5.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <img src="/sample-5.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
                   </div>
                   
                   <h4 style="font-size: 16px; font-weight: 500; color: ${colors.categoryColor}; margin: 0 0 8px 0;">
@@ -689,10 +689,10 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                 >
                   {/* Corner Food Images */}
                   <div className="absolute top-4 left-4 w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-lg">
-                    <img src="/src/assets/sample-1.jpg" alt="Food" className="w-full h-full object-cover" />
+                    <img src="/sample-1.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute top-4 right-4 w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-lg">
-                    <img src="/src/assets/sample-2.jpg" alt="Food" className="w-full h-full object-cover" />
+                    <img src="/sample-2.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
                   
                   <h2 className="text-4xl font-bold mb-3 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
@@ -781,10 +781,10 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                 <div className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-6 text-center border border-gray-200 relative mt-auto">
                   {/* Bottom Corner Images */}
                   <div className="absolute bottom-4 left-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
-                    <img src="/src/assets/sample-3.jpg" alt="Food" className="w-full h-full object-cover" />
+                    <img src="/sample-3.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute bottom-4 right-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
-                    <img src="/src/assets/sample-5.jpg" alt="Food" className="w-full h-full object-cover" />
+                    <img src="/sample-5.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
                   
                   <h4 className="text-base font-medium mb-2" style={{ color: colors.categoryColor }}>
