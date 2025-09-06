@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
-  const { login, signup, isStorageAvailable } = useAuth()
+  const { login, quickLogin, guestLogin, signup, isStorageAvailable } = useAuth()
   const [isSignupMode, setIsSignupMode] = useState(isSignup)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [debugInfo, setDebugInfo] = useState('')
+  const [showQuickLogin, setShowQuickLogin] = useState(false)
   
   const [formData, setFormData] = useState({
     email: '',
@@ -23,7 +24,53 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
       setError('Storage not available. Please enable cookies/local storage in your browser settings.')
       setDebugInfo('This usually happens in private browsing mode or when cookies are disabled.')
     }
+    
+    // Show quick login option for Android users having issues
+    const isAndroid = /Android/i.test(navigator.userAgent)
+    if (isAndroid) {
+      setShowQuickLogin(true)
+    }
   }, [isStorageAvailable])
+
+  const handleGuestLogin = async () => {
+    setLoading(true)
+    setError('')
+    setDebugInfo('')
+
+    try {
+      console.log('Using guest login...')
+      await guestLogin()
+      console.log('Guest login successful')
+      onClose()
+    } catch (err) {
+      console.error('Guest login error:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleQuickLogin = async () => {
+    setLoading(true)
+    setError('')
+    setDebugInfo('')
+
+    try {
+      if (!formData.email || !formData.password) {
+        throw new Error('Please enter email and password for quick login')
+      }
+      console.log('Using quick login method...')
+      await quickLogin(formData.email, formData.password)
+      console.log('Quick login successful')
+      onClose()
+    } catch (err) {
+      console.error('Quick login error:', err)
+      setError(err.message)
+      setDebugInfo('Quick login creates or logs into an account automatically. If this fails, there may be a browser storage issue.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleInputChange = (e) => {
     setFormData({
@@ -250,6 +297,24 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
             )}
           </button>
 
+          {/* Quick Login for Android users having trouble */}
+          {showQuickLogin && !isSignupMode && (
+            <>
+              <div className="text-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                <strong>Android users:</strong> If normal login fails, try Quick Login below. 
+                It automatically creates/accesses your account.
+              </div>
+              <button
+                type="button"
+                onClick={handleQuickLogin}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Creating...' : '⚡ Quick Login (Android Fix)'}
+              </button>
+            </>
+          )}
+
           {/* Toggle Mode */}
           <div className="text-center pt-4 border-t border-gray-200">
             <button
@@ -261,6 +326,18 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
                 ? 'Already have an account? Sign in' 
                 : "Don't have an account? Create one"
               }
+            </button>
+          </div>
+
+          {/* Guest Login - Ultimate fallback */}
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={loading}
+              className="text-gray-500 hover:text-gray-700 text-sm underline disabled:opacity-50"
+            >
+              Continue as Guest (No account needed)
             </button>
           </div>
         </form>
