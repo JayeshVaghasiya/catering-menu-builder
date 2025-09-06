@@ -420,6 +420,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <MobileHelper />
       <AppContent />
       <MobileDebugger />
     </AuthProvider>
