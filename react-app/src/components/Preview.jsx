@@ -33,82 +33,106 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
       tempBrandingDiv.innerHTML = `
         <div style="height: 100%; display: flex; flex-direction: column; font-family: Arial, sans-serif;">
           <!-- Top Header with Large Ganapati -->
-          <div style="background: linear-gradient(135deg, #FDE047 0%, #FB923C 50%, #EF4444 100%); text-align: center; padding: 50px; position: relative;">
+          <div style="background: linear-gradient(135deg, #FDE047 0%, #FB923C 50%, #EF4444 100%); text-align: center; padding: 30px; position: relative;">
             ${brand.ganapatiDataUrl ? `
               <img src="${brand.ganapatiDataUrl}" alt="Ganapati" 
-                   style="width: 160px; height: 160px; object-fit: cover; border-radius: 50%; 
-                          margin: 0 auto; border: 8px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.3);" />
+                   style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; 
+                          margin: 0 auto; border: 6px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.3);" />
             ` : `
-              <div style="width: 160px; height: 160px; background: white; border-radius: 50%; 
+              <div style="width: 120px; height: 120px; background: white; border-radius: 50%; 
                           display: flex; align-items: center; justify-content: center; margin: 0 auto; 
-                          border: 8px solid white; box-shadow: 0 15px 35px rgba(0,0,0,0.3); font-size: 64px;">
+                          border: 6px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-size: 48px;">
                 🕉️
               </div>
             `}
             ${brand.logoDataUrl ? `
               <img src="${brand.logoDataUrl}" alt="Logo" 
-                   style="position: absolute; top: 20px; right: 20px; width: 80px; height: 80px; 
-                          object-fit: cover; border-radius: 50%; border: 4px solid white; 
-                          box-shadow: 0 5px 15px rgba(0,0,0,0.2);" />
+                   style="position: absolute; top: 15px; right: 15px; width: 60px; height: 60px; 
+                          object-fit: cover; border-radius: 50%; border: 3px solid white; 
+                          box-shadow: 0 3px 10px rgba(0,0,0,0.2);" />
             ` : ''}
-            <div style="margin-top: 20px;">
-              <h1 style="color: white; font-size: 42px; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+            <div style="margin-top: 15px;">
+              <h1 style="color: white; font-size: 32px; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                 ${brand.businessName || 'Your Business Name'}
               </h1>
-              <p style="color: white; font-size: 24px; font-weight: 500; margin: 10px 0 0 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+              <p style="color: white; font-size: 18px; font-weight: 500; margin: 8px 0 0 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
                 ${brand.tagline || 'Your tagline here'}
               </p>
             </div>
           </div>
 
           <!-- Main Content Area -->
-          <div style="flex: 1; padding: 60px; text-align: center;">
-            ${brand.services ? `
-              <div style="background: rgba(255,255,255,0.9); border-radius: 20px; padding: 40px; 
-                          margin-bottom: 40px; border: 2px solid #E5E7EB; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                <h3 style="color: ${colors.headerColor}; font-size: 28px; font-weight: bold; margin: 0 0 20px 0;">
-                  🍽️ Our Catering Services
-                </h3>
-                <p style="color: ${colors.textColor}; font-size: 18px; line-height: 1.6; margin: 0;">
-                  ${brand.services}
-                </p>
-              </div>
-            ` : ''}
-
-            <div style="background: rgba(255,255,255,0.9); border-radius: 20px; padding: 40px; 
-                        border: 2px solid #E5E7EB; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-              <h3 style="color: ${colors.headerColor}; font-size: 28px; font-weight: bold; margin: 0 0 20px 0;">
+          <div style="flex: 1; padding: 40px; text-align: center;">
+            <div style="background: rgba(255,255,255,0.9); border-radius: 15px; padding: 25px; 
+                        border: 2px solid #E5E7EB; box-shadow: 0 8px 20px rgba(0,0,0,0.1);">
+              <h3 style="color: ${colors.headerColor}; font-size: 22px; font-weight: bold; margin: 0 0 15px 0;">
                 📞 Contact Information
               </h3>
-              <div style="color: ${colors.textColor}; font-size: 18px; line-height: 1.8;">
-                ${brand.contact?.split('/').map(line => `<div style="margin-bottom: 8px;">${line.trim()}</div>`).join('') || 'Contact information here'}
+              <div style="color: ${colors.textColor}; font-size: 16px; line-height: 1.6;">
+                ${brand.contact?.split('/').map(line => `<div style="margin-bottom: 6px;">${line.trim()}</div>`).join('') || 'Contact information here'}
               </div>
             </div>
 
             <!-- Decorative Elements -->
-            <div style="margin-top: 40px; display: flex; justify-content: center; align-items: center;">
-              <div style="width: 60px; height: 3px; background: linear-gradient(to right, transparent, #FB923C);"></div>
-              <span style="margin: 0 20px; font-size: 32px;">🌟</span>
-              <div style="width: 60px; height: 3px; background: linear-gradient(to left, transparent, #FB923C);"></div>
+            <div style="margin-top: 25px; display: flex; justify-content: center; align-items: center;">
+              <div style="width: 50px; height: 2px; background: linear-gradient(to right, transparent, #FB923C);"></div>
+              <span style="margin: 0 15px; font-size: 24px;">🌟</span>
+              <div style="width: 50px; height: 2px; background: linear-gradient(to left, transparent, #FB923C);"></div>
             </div>
             
-            <p style="color: ${colors.categoryColor}; font-size: 16px; margin-top: 30px; font-style: italic; margin-bottom: 30px;">
+            <p style="color: ${colors.categoryColor}; font-size: 14px; margin-top: 20px; font-style: italic; margin-bottom: 20px;">
               Premium Catering Services for Every Occasion
             </p>
 
             ${brand.services ? `
-              <!-- Detailed Services Information -->
-              <div style="background: rgba(255,255,255,0.95); border-radius: 15px; padding: 30px; 
-                          margin: 20px auto; max-width: 600px; border: 2px solid #E5E7EB; 
-                          box-shadow: 0 8px 25px rgba(0,0,0,0.1); text-align: left;">
-                <h3 style="color: ${colors.headerColor}; font-size: 22px; font-weight: bold; 
-                           margin: 0 0 20px 0; text-align: center; border-bottom: 2px solid ${colors.headerColor}; 
-                           padding-bottom: 10px;">
-                  🍽️ Our Specialized Services
+              <!-- Detailed Services Information with Beautiful Bullet Points -->
+              <div style="background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%); 
+                          border-radius: 15px; padding: 25px; margin: 15px auto; max-width: 600px; 
+                          border: 2px solid #FB923C; box-shadow: 0 8px 20px rgba(0,0,0,0.08); text-align: left;">
+                <h3 style="color: ${colors.headerColor}; font-size: 20px; font-weight: bold; 
+                           margin: 0 0 20px 0; text-align: center; display: flex; align-items: center; 
+                           justify-content: center; gap: 10px;">
+                  <span style="font-size: 22px;">🍽️</span>
+                  <span>Our Specialized Catering Services</span>
+                  <span style="font-size: 22px;">✨</span>
                 </h3>
-                <div style="color: ${colors.textColor}; font-size: 16px; line-height: 1.8; 
-                            white-space: pre-wrap; text-align: left;">
-                  ${brand.services.replace(/\n/g, '<br>')}
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  ${brand.services.split('\n')
+                    .filter(line => line.trim())
+                    .map(line => {
+                      const cleanContent = line.trim().replace(/^[●•\-]\s*/, '').trim()
+                      if (cleanContent) {
+                        return `
+                          <div style="background: rgba(255,255,255,0.7); border-radius: 8px; padding: 12px; 
+                                      border-left: 4px solid #FB923C; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                                      display: flex; align-items: flex-start; gap: 10px;">
+                            <span style="color: #EA580C; font-size: 16px; font-weight: bold; 
+                                         margin-top: 1px;">🔸</span>
+                            <div style="flex: 1;">
+                              <span style="color: ${colors.textColor}; font-size: 14px; line-height: 1.4; 
+                                           font-weight: 500; text-align: left;">
+                                ${cleanContent}
+                              </span>
+                            </div>
+                          </div>
+                        `
+                      }
+                      return ''
+                    })
+                    .join('')}
+                </div>
+                
+                <!-- Decorative Bottom Border -->
+                <div style="margin-top: 20px; text-align: center;">
+                  <div style="display: inline-flex; align-items: center; gap: 8px;">
+                    <div style="width: 30px; height: 1px; background: linear-gradient(to right, transparent, #FB923C);"></div>
+                    <span style="font-size: 16px;">🌟</span>
+                    <span style="color: ${colors.categoryColor}; font-size: 12px; font-weight: 600;">
+                      Premium Quality • Professional Service
+                    </span>
+                    <span style="font-size: 16px;">🌟</span>
+                    <div style="width: 30px; height: 1px; background: linear-gradient(to left, transparent, #FB923C);"></div>
+                  </div>
                 </div>
               </div>
             ` : ''}
@@ -139,15 +163,34 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
         
         // Create menu content for this meal type
         tempMenuDiv.innerHTML = `
-          <div style="padding: 48px;">
-            <div style="text-center; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 2px solid ${colors.headerColor};">
-              <h2 style="font-size: 36px; font-weight: bold; color: ${colors.headerColor}; margin-bottom: 12px;">
+          <div style="min-height: 100vh; background: linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%); padding: 40px;">
+            <!-- Clean Header with Sample Images -->
+            <div style="background: linear-gradient(135deg, ${colors.headerColor} 0%, #FB923C 100%); 
+                        border-radius: 20px; padding: 40px; text-align: center; position: relative; 
+                        margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+              
+              <!-- Corner Food Images -->
+              <div style="position: absolute; top: 15px; left: 15px; width: 60px; height: 60px; 
+                          border-radius: 50%; overflow: hidden; border: 3px solid white; 
+                          box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                <img src="/src/assets/sample-1.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              <div style="position: absolute; top: 15px; right: 15px; width: 60px; height: 60px; 
+                          border-radius: 50%; overflow: hidden; border: 3px solid white; 
+                          box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                <img src="/src/assets/sample-2.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              
+              <h2 style="font-size: 36px; font-weight: bold; color: white; margin: 0; 
+                         text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                 ${mealType.name} Menu
               </h2>
-              <p style="font-size: 20px; color: ${colors.categoryColor};">
+              <p style="font-size: 20px; color: white; margin: 10px 0; 
+                         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
                 ${brand.businessName || 'Your Business Name'}
               </p>
-              <p style="font-size: 14px; color: #6B7280; margin-top: 12px;">
+              <div style="width: 100px; height: 2px; background: white; margin: 15px auto; border-radius: 1px;"></div>
+              <p style="font-size: 14px; color: rgba(255,255,255,0.9);">
                 ${new Date().toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -157,33 +200,59 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
               </p>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 32px;">
-              ${mealType.categories.map(cat => `
-                <div style="margin-bottom: 32px;">
-                  <h3 style="font-size: 24px; font-weight: 600; color: ${colors.categoryColor}; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid ${colors.categoryColor}40;">
+            <!-- Clean Menu Categories -->
+            ${mealType.categories.map((cat, catIndex) => `
+              <div style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 25px; 
+                          box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-left: 5px solid ${colors.categoryColor};">
+                
+                <!-- Category Header -->
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                  <div style="width: 40px; height: 40px; background: ${colors.categoryColor}; 
+                              border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                              margin-right: 15px;">
+                    <span style="font-size: 20px; color: white;">${catIndex === 0 ? '🍛' : catIndex === 1 ? '🥘' : catIndex === 2 ? '🍚' : '🍽️'}</span>
+                  </div>
+                  <h3 style="font-size: 24px; font-weight: 600; color: ${colors.categoryColor}; margin: 0;">
                     ${cat.name || 'Category'}
                   </h3>
-                  <div style="display: flex; flex-direction: column; gap: 12px;">
-                    ${cat.dishes.map(dish => `
-                      <div style="display: flex; align-items: flex-start; gap: 16px;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${colors.categoryColor}; margin-top: 8px; flex-shrink: 0;"></span>
-                        <span style="font-size: 16px; line-height: 1.6; color: ${colors.textColor};">
-                          ${dish || 'Dish'}
-                        </span>
-                      </div>
-                    `).join('')}
-                  </div>
                 </div>
-              `).join('')}
-            </div>
-            
-            <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #E5E7EB; text-align: center;">
-              <p style="font-size: 14px; color: #6B7280;">
-                Thank you for choosing ${brand.businessName || 'us'}!
-              </p>
-              <div style="margin-top: 8px; font-size: 12px; color: #9CA3AF;">
-                Menu created with Menu Creator
+                
+                <!-- Simple Dishes List -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+                  ${cat.dishes.map(dish => `
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                      <div style="width: 8px; height: 8px; background: ${colors.categoryColor}; 
+                                  border-radius: 50%; flex-shrink: 0;"></div>
+                      <span style="font-size: 16px; line-height: 1.4; color: ${colors.textColor}; font-weight: 400;">
+                        ${dish || 'Dish'}
+                      </span>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
+            `).join('')}
+            
+            <!-- Simple Footer with Sample Images -->
+            <div style="background: linear-gradient(135deg, #F8F9FA 0%, white 100%); 
+                        border-radius: 15px; padding: 25px; text-align: center; margin-top: 30px; 
+                        border: 1px solid #E5E7EB; position: relative;">
+              
+              <!-- Bottom Corner Images -->
+              <div style="position: absolute; bottom: 15px; left: 15px; width: 50px; height: 50px; 
+                          border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
+                <img src="/src/assets/sample-3.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              <div style="position: absolute; bottom: 15px; right: 15px; width: 50px; height: 50px; 
+                          border-radius: 50%; overflow: hidden; border: 2px solid ${colors.categoryColor};">
+                <img src="/src/assets/sample-5.jpg" alt="Food" style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+              
+              <h4 style="font-size: 16px; font-weight: 500; color: ${colors.categoryColor}; margin: 0 0 8px 0;">
+                Thank you for choosing ${brand.businessName || 'us'}!
+              </h4>
+              <p style="font-size: 12px; color: ${colors.textColor}; margin: 0;">
+                Authentic flavors for your special occasions
+              </p>
             </div>
           </div>
         `
@@ -282,50 +351,49 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
               ref={brandingRef} 
               className="bg-white shadow-lg rounded-lg overflow-hidden"
               style={{ 
-                width: '320px', 
-                height: '450px',
+                width: '600px', 
+                height: '800px',
                 background: colors.brandingBg,
-                transform: 'scale(0.85)',
                 transformOrigin: 'top center'
               }}
             >
               {/* Business Profile Page Layout */}
               <div className="h-full flex flex-col">
                 {/* Top Header with Ganapati */}
-                <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-center py-6 relative">
+                <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-center py-8 relative">
                   {brand.ganapatiDataUrl ? (
                     <img 
                       src={brand.ganapatiDataUrl} 
                       alt="Ganapati" 
-                      className="w-28 h-28 object-cover rounded-full mx-auto border-4 border-white shadow-xl"
+                      className="w-32 h-32 object-cover rounded-full mx-auto border-4 border-white shadow-xl"
                     />
                   ) : (
-                    <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-xl">
-                      <span className="text-4xl">🕉️</span>
+                    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-xl">
+                      <span className="text-5xl">🕉️</span>
                     </div>
                   )}
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-3 right-3">
                     {brand.logoDataUrl && (
                       <img 
                         src={brand.logoDataUrl} 
                         alt="Logo" 
-                        className="w-12 h-12 object-cover rounded-full border-2 border-white shadow-lg"
+                        className="w-16 h-16 object-cover rounded-full border-2 border-white shadow-lg"
                       />
                     )}
                   </div>
                 </div>
 
                 {/* Business Information */}
-                <div className="flex-1 p-6 text-center space-y-4">
+                <div className="flex-1 p-8 text-center space-y-6">
                   <div>
                     <h1 
-                      className="text-2xl font-bold leading-tight"
+                      className="text-3xl font-bold leading-tight"
                       style={{ color: colors.headerColor }}
                     >
                       {brand.businessName || 'Your Business Name'}
                     </h1>
                     <p 
-                      className="text-base font-medium mt-1"
+                      className="text-lg font-medium mt-2"
                       style={{ color: colors.categoryColor }}
                     >
                       {brand.tagline || 'Your tagline here'}
@@ -333,21 +401,43 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                   </div>
 
                   {/* Services Section - Always show for debugging */}
-                  <div className="bg-white bg-opacity-70 rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-6 border-2 border-orange-200 shadow-sm">
                     <h3 
-                      className="text-sm font-semibold mb-3 text-center"
+                      className="text-lg font-bold mb-4 text-center flex items-center justify-center space-x-2"
                       style={{ color: colors.headerColor }}
                     >
-                      🍽️ Our Specialized Services
+                      <span className="text-xl">🍽️</span>
+                      <span>Our Specialized Services</span>
+                      <span className="text-xl">✨</span>
                     </h3>
-                    <div 
-                      className="text-xs leading-relaxed text-left"
-                      style={{ 
-                        color: colors.textColor,
-                        whiteSpace: 'pre-wrap'
-                      }}
-                    >
-                      {brand.services || 'No services added yet. Add services in Brand Settings to see them here.'}
+                    <div className="space-y-3">
+                      {brand.services ? (
+                        brand.services.split('\n').filter(line => line.trim()).map((line, index) => {
+                          // Remove existing bullet symbols if present and use our own
+                          const cleanContent = line.trim().replace(/^[●•\-]\s*/, '').trim()
+                          
+                          if (cleanContent) {
+                            return (
+                              <div key={index} className="flex items-start space-x-3 p-3 bg-white bg-opacity-60 rounded-md">
+                                <span className="text-orange-500 font-bold text-lg mt-0.5">🔸</span>
+                                <span 
+                                  className="text-sm leading-relaxed flex-1"
+                                  style={{ color: colors.textColor }}
+                                >
+                                  {cleanContent}
+                                </span>
+                              </div>
+                            )
+                          }
+                          return null
+                        })
+                      ) : (
+                        <div className="text-center py-4">
+                          <span className="text-xs text-gray-400 italic">
+                            No services added yet. Add services in Brand Settings to see them here.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -391,96 +481,109 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
             <div className="flex justify-center">
               <div 
                 ref={el => menuRefs.current[index] = el}
-                className="bg-white shadow-lg rounded-lg overflow-hidden"
+                className="shadow-lg rounded-lg overflow-hidden"
                 style={{ 
-                  width: '320px', 
-                  minHeight: '450px',
-                  background: colors.menuBg,
-                  transform: 'scale(0.85)',
+                  width: '600px', 
+                  minHeight: '800px',
+                  background: 'linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%)',
                   transformOrigin: 'top center'
                 }}
               >
-                <div className="p-8">
-                  {/* Menu Header */}
-                  <div className="text-center mb-8 pb-4 border-b-2" style={{ borderColor: colors.headerColor }}>
-                    <h2 
-                      className="text-3xl font-bold mb-2"
-                      style={{ color: colors.headerColor }}
-                    >
-                      {mealType.name} Menu
-                    </h2>
-                    <p 
-                      className="text-lg"
-                      style={{ color: colors.categoryColor }}
-                    >
-                      {brand.businessName || 'Your Business Name'}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      {new Date().toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </p>
+                {/* Clean Header with Sample Images */}
+                <div 
+                  className="text-center p-10 relative"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${colors.headerColor} 0%, #FB923C 100%)`,
+                    borderRadius: '20px 20px 0 0'
+                  }}
+                >
+                  {/* Corner Food Images */}
+                  <div className="absolute top-4 left-4 w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg">
+                    <img src="/src/assets/sample-1.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
+                  <div className="absolute top-4 right-4 w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg">
+                    <img src="/src/assets/sample-2.jpg" alt="Food" className="w-full h-full object-cover" />
+                  </div>
+                  
+                  <h2 className="text-4xl font-bold mb-3 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+                    {mealType.name} Menu
+                  </h2>
+                  <p className="text-xl text-white mb-3" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
+                    {brand.businessName || 'Your Business Name'}
+                  </p>
+                  <div className="w-24 h-0.5 bg-white mx-auto rounded mb-3"></div>
+                  <p className="text-sm text-white opacity-90">
+                    {new Date().toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
 
-                  {/* Menu Categories */}
-                  <div className="space-y-6">
-                    {mealType.categories && mealType.categories.length > 0 ? (
-                      mealType.categories.map((cat, catIndex) => (
-                        <div key={cat.id || catIndex} className="space-y-3">
-                          <h3 
-                            className="text-xl font-semibold border-b pb-2"
-                            style={{ 
-                              color: colors.categoryColor,
-                              borderColor: colors.categoryColor + '40'
-                            }}
+                {/* Clean Menu Categories */}
+                <div className="p-10 space-y-6">
+                  {mealType.categories && mealType.categories.length > 0 ? (
+                    mealType.categories.map((cat, catIndex) => (
+                      <div key={cat.id || catIndex} className="bg-white rounded-2xl p-8 shadow-md" style={{ borderLeft: `5px solid ${colors.categoryColor}` }}>
+                        {/* Category Header */}
+                        <div className="flex items-center mb-5">
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center mr-4 text-white text-xl"
+                            style={{ backgroundColor: colors.categoryColor }}
                           >
+                            {catIndex === 0 ? '🍛' : catIndex === 1 ? '🥘' : catIndex === 2 ? '🍚' : '🍽️'}
+                          </div>
+                          <h3 className="text-2xl font-semibold" style={{ color: colors.categoryColor }}>
                             {cat.name || `Category ${catIndex + 1}`}
                           </h3>
-                          <div className="space-y-2">
-                            {cat.dishes && cat.dishes.length > 0 ? (
-                              cat.dishes.map((dish, dishIndex) => (
-                                <div 
-                                  key={dishIndex} 
-                                  className="flex items-start space-x-3"
-                                >
-                                  <span 
-                                    className="w-2 h-2 rounded-full mt-2 flex-shrink-0"
-                                    style={{ backgroundColor: colors.categoryColor }}
-                                  ></span>
-                                  <span 
-                                    className="text-base leading-relaxed"
-                                    style={{ color: colors.textColor }}
-                                  >
-                                    {dish || `Dish ${dishIndex + 1}`}
-                                  </span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-gray-400 italic">No dishes added yet</p>
-                            )}
-                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="text-4xl mb-4">🍽️</div>
-                        <p className="text-gray-400">No categories in {mealType.name}</p>
-                        <p className="text-sm text-gray-500 mt-2">Add categories to see items here</p>
+                        
+                        {/* Simple Dishes Grid */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {cat.dishes && cat.dishes.length > 0 ? (
+                            cat.dishes.map((dish, dishIndex) => (
+                              <div key={dishIndex} className="flex items-center gap-3 py-2">
+                                <div 
+                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: colors.categoryColor }}
+                                ></div>
+                                <span className="text-base leading-relaxed" style={{ color: colors.textColor }}>
+                                  {dish || `Dish ${dishIndex + 1}`}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-gray-400 italic text-lg col-span-2">No dishes added yet</p>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-                    <p className="text-sm text-gray-500">
-                      Thank you for choosing {brand.businessName || 'us'}!
-                    </p>
-                    <div className="mt-2 text-xs text-gray-400">
-                      Menu created with Menu Creator
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-4">🍽️</div>
+                      <p className="text-gray-400">No categories in {mealType.name}</p>
+                      <p className="text-sm text-gray-500 mt-2">Add categories to see items here</p>
                     </div>
+                  )}
+                  
+                  {/* Simple Footer with Sample Images */}
+                  <div className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-6 text-center border border-gray-200 relative mt-8">
+                    {/* Bottom Corner Images */}
+                    <div className="absolute bottom-4 left-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
+                      <img src="/src/assets/sample-3.jpg" alt="Food" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="absolute bottom-4 right-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
+                      <img src="/src/assets/sample-5.jpg" alt="Food" className="w-full h-full object-cover" />
+                    </div>
+                    
+                    <h4 className="text-base font-medium mb-2" style={{ color: colors.categoryColor }}>
+                      Thank you for choosing {brand.businessName || 'us'}!
+                    </h4>
+                    <p className="text-xs" style={{ color: colors.textColor }}>
+                      Authentic flavors for your special occasions
+                    </p>
                   </div>
                 </div>
               </div>
