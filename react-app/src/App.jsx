@@ -13,7 +13,13 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
   
   // Initialize with user's saved brand info or defaults
   const getInitialBrand = () => {
-    if (editingMenu?.brand) return editingMenu.brand
+    if (editingMenu?.brand) {
+      // Ensure backward compatibility - add services field if it doesn't exist
+      return {
+        ...editingMenu.brand,
+        services: editingMenu.brand.services || ''
+      }
+    }
     
     if (currentUser) {
       return {
@@ -51,7 +57,13 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
   const previewRef = useRef(null)
 
   function updateBrand(patch) {
-    setBrand(b => ({ ...b, ...patch }))
+    console.log('updateBrand called with patch:', patch)
+    console.log('Current brand before update:', brand)
+    setBrand(b => {
+      const newBrand = { ...b, ...patch }
+      console.log('New brand after update:', newBrand)
+      return newBrand
+    })
   }
 
   function addMealType() {
@@ -341,15 +353,16 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard') // 'dashboard' or 'creator'
   const [editingMenu, setEditingMenu] = useState(null)
 
-  // Show auth modal if no user is logged in
+  // Show auth modal if no user is logged in - only on login/logout, not on profile updates
   useEffect(() => {
     if (!currentUser) {
       setShowAuthModal(true)
+      setCurrentView('dashboard')
     } else {
       setShowAuthModal(false)
-      setCurrentView('dashboard')
+      // Don't force navigation on user profile updates
     }
-  }, [currentUser])
+  }, [currentUser?.id]) // Only depend on user ID, not the entire user object
 
   const handleCreateNew = () => {
     setEditingMenu(null)
