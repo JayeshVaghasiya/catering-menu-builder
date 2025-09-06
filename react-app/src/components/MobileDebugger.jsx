@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function MobileDebugger() {
-  const { isStorageAvailable } = useAuth()
+  const { isStorageAvailable, createTestAccount } = useAuth()
   const [debugInfo, setDebugInfo] = useState({})
   const [showDebug, setShowDebug] = useState(false)
+  const [testResults, setTestResults] = useState('')
 
   useEffect(() => {
     const info = {
@@ -55,6 +56,44 @@ export default function MobileDebugger() {
     }
   }
 
+  const runLoginTest = () => {
+    setTestResults('Running login test...')
+    
+    try {
+      // Create test account
+      const testUser = createTestAccount()
+      if (!testUser) {
+        setTestResults('❌ Failed to create test account')
+        return
+      }
+      
+      // Check if user was saved
+      const usersData = localStorage.getItem('users')
+      const users = JSON.parse(usersData || '[]')
+      const foundUser = users.find(u => u.email === 'test@example.com')
+      
+      if (foundUser) {
+        setTestResults('✅ Test account created and found in storage!\nEmail: test@example.com\nPassword: 123456\nTry logging in with these credentials.')
+      } else {
+        setTestResults('❌ Test account not found in storage after creation')
+      }
+    } catch (error) {
+      setTestResults(`❌ Test failed: ${error.message}`)
+    }
+  }
+
+  const clearTestData = () => {
+    try {
+      const usersData = localStorage.getItem('users')
+      const users = JSON.parse(usersData || '[]')
+      const filteredUsers = users.filter(u => u.email !== 'test@example.com')
+      localStorage.setItem('users', JSON.stringify(filteredUsers))
+      setTestResults('✅ Test data cleared')
+    } catch (error) {
+      setTestResults(`❌ Clear failed: ${error.message}`)
+    }
+  }
+
   const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
   if (!isMobile && process.env.NODE_ENV === 'production') {
@@ -96,7 +135,21 @@ export default function MobileDebugger() {
             ))}
           </div>
           
-          <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+            <button
+              onClick={runLoginTest}
+              className="w-full bg-green-600 text-white py-2 px-3 rounded text-xs hover:bg-green-700 transition-colors"
+            >
+              Create Test Account
+            </button>
+            
+            <button
+              onClick={clearTestData}
+              className="w-full bg-red-600 text-white py-2 px-3 rounded text-xs hover:bg-red-700 transition-colors"
+            >
+              Clear Test Data
+            </button>
+            
             <button
               onClick={() => {
                 navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
@@ -106,6 +159,12 @@ export default function MobileDebugger() {
             >
               Copy Debug Info
             </button>
+            
+            {testResults && (
+              <div className="mt-2 p-2 bg-gray-100 rounded text-xs whitespace-pre-wrap">
+                {testResults}
+              </div>
+            )}
           </div>
         </div>
       )}

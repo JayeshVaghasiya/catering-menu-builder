@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
           return
         }
 
-        const userData = localStorage.getItem('currentUser')
+        const userData = safeGetItem('currentUser')
         if (userData) {
           const parsedUser = JSON.parse(userData)
           // Validate user data structure
@@ -74,14 +74,18 @@ export function AuthProvider({ children }) {
             setCurrentUser(parsedUser)
           } else {
             // Clean up corrupted user data
-            localStorage.removeItem('currentUser')
+            if (isStorageAvailable()) {
+              localStorage.removeItem('currentUser')
+            }
           }
         }
       } catch (error) {
         console.error('Error loading user:', error)
         // Clean up on parse error
         try {
-          localStorage.removeItem('currentUser')
+          if (isStorageAvailable()) {
+            localStorage.removeItem('currentUser')
+          }
         } catch (e) {
           console.error('Cannot access localStorage:', e)
         }
@@ -242,15 +246,24 @@ export function AuthProvider({ children }) {
   }
 
   const updateUserProfile = (updates) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const updatedUsers = users.map(u => 
-      u.id === currentUser.id ? { ...u, ...updates } : u
-    )
-    
-    const updatedUser = { ...currentUser, ...updates }
-    localStorage.setItem('users', JSON.stringify(updatedUsers))
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-    setCurrentUser(updatedUser)
+    try {
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      const updatedUsers = users.map(u => 
+        u.id === currentUser.id ? { ...u, ...updates } : u
+      )
+      
+      const updatedUser = { ...currentUser, ...updates }
+      const usersString = JSON.stringify(updatedUsers)
+      const userString = JSON.stringify(updatedUser)
+      
+      safeSetItem('users', usersString)
+      safeSetItem('currentUser', userString)
+      setCurrentUser(updatedUser)
+    } catch (error) {
+      console.error('Error updating user profile:', error)
+      throw new Error('Unable to update profile. Please try again.')
+    }
   }
 
   // Storage management utility
@@ -265,8 +278,10 @@ export function AuthProvider({ children }) {
   }
 
   const cleanupOldMenus = (userId, forceCleanup = false) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const user = users.find(u => u.id === userId)
+    try {
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      const user = users.find(u => u.id === userId)
     
     if (user && user.menus && user.menus.length > 0) {
       let menusToKeep = 10
@@ -298,17 +313,23 @@ export function AuthProvider({ children }) {
       }
     }
     return false // No cleanup needed
+    } catch (error) {
+      console.error('Error cleaning up old menus:', error)
+      return false
+    }
   }
 
   // Emergency storage cleanup - remove all old data
   const emergencyCleanup = () => {
     try {
       // Keep only current user data and clear everything else
-      const currentUserData = localStorage.getItem('currentUser')
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
+      const currentUserData = safeGetItem('currentUser')
+      const usersData = safeGetItem('users', '[]')
       
       // Clear all localStorage
-      localStorage.clear()
+      if (isStorageAvailable()) {
+        localStorage.clear()
+      }
       
       // Only restore current user with minimal data
       if (currentUserData) {
@@ -322,8 +343,8 @@ export function AuthProvider({ children }) {
           menus: [] // Start fresh with no menus
         }
         
-        localStorage.setItem('users', JSON.stringify([minimalUser]))
-        localStorage.setItem('currentUser', JSON.stringify(minimalUser))
+        safeSetItem('users', JSON.stringify([minimalUser]))
+        safeSetItem('currentUser', JSON.stringify(minimalUser))
         setCurrentUser(minimalUser)
       }
       
@@ -336,7 +357,8 @@ export function AuthProvider({ children }) {
   const saveMenu = (menuData) => {
     try {
       // First, let's try to save normally
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
       const menuWithId = {
         id: Date.now().toString(),
         ...menuData,
@@ -355,8 +377,11 @@ export function AuthProvider({ children }) {
         menus: [...(currentUser.menus || []), menuWithId]
       }
       
-      localStorage.setItem('users', JSON.stringify(updatedUsers))
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+      const usersString = JSON.stringify(updatedUsers)
+      const userString = JSON.stringify(updatedUser)
+      
+      safeSetItem('users', usersString)
+      safeSetItem('currentUser', userString)
       setCurrentUser(updatedUser)
       
       return menuWithId
@@ -381,8 +406,11 @@ export function AuthProvider({ children }) {
           const users = [{ ...currentUser, menus: [menuWithId] }]
           const updatedUser = { ...currentUser, menus: [menuWithId] }
           
-          localStorage.setItem('users', JSON.stringify(users))
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+          const usersString = JSON.stringify(users)
+          const userString = JSON.stringify(updatedUser)
+          
+          safeSetItem('users', usersString)
+          safeSetItem('currentUser', userString)
           setCurrentUser(updatedUser)
           
           alert('Storage was full. We\'ve cleared old data and saved your new menu.')
@@ -397,7 +425,8 @@ export function AuthProvider({ children }) {
 
   const updateMenu = (menuId, menuData) => {
     try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
       const updatedMenuData = {
         ...menuData,
         updatedAt: new Date().toISOString()
@@ -421,8 +450,11 @@ export function AuthProvider({ children }) {
         )
       }
       
-      localStorage.setItem('users', JSON.stringify(updatedUsers))
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+      const usersString = JSON.stringify(updatedUsers)
+      const userString = JSON.stringify(updatedUser)
+      
+      safeSetItem('users', usersString)
+      safeSetItem('currentUser', userString)
       setCurrentUser(updatedUser)
     } catch (error) {
       if (error.name === 'QuotaExceededError') {
@@ -433,22 +465,64 @@ export function AuthProvider({ children }) {
   }
 
   const deleteMenu = (menuId) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    
-    const updatedUsers = users.map(u => 
-      u.id === currentUser.id 
-        ? { ...u, menus: u.menus.filter(m => m.id !== menuId) }
-        : u
-    )
-    
-    const updatedUser = {
-      ...currentUser,
-      menus: currentUser.menus.filter(m => m.id !== menuId)
+    try {
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      const updatedUsers = users.map(u => 
+        u.id === currentUser.id 
+          ? { ...u, menus: u.menus.filter(m => m.id !== menuId) }
+          : u
+      )
+      
+      const updatedUser = {
+        ...currentUser,
+        menus: currentUser.menus.filter(m => m.id !== menuId)
+      }
+      
+      const usersString = JSON.stringify(updatedUsers)
+      const userString = JSON.stringify(updatedUser)
+      
+      safeSetItem('users', usersString)
+      safeSetItem('currentUser', userString)
+      setCurrentUser(updatedUser)
+    } catch (error) {
+      console.error('Error deleting menu:', error)
+      throw new Error('Unable to delete menu. Please try again.')
     }
-    
-    localStorage.setItem('users', JSON.stringify(updatedUsers))
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-    setCurrentUser(updatedUser)
+  }
+
+  // Debug function to create a test account for troubleshooting
+  const createTestAccount = () => {
+    try {
+      const testUser = {
+        id: 'test-user-' + Date.now(),
+        email: 'test@example.com',
+        password: '123456',
+        businessName: 'Test Business',
+        ownerName: 'Test Owner',
+        phone: '123-456-7890',
+        address: 'Test Address',
+        createdAt: new Date().toISOString(),
+        menus: []
+      }
+
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      // Remove any existing test user
+      const filteredUsers = users.filter(u => u.email !== 'test@example.com')
+      const updatedUsers = [...filteredUsers, testUser]
+      
+      const usersString = JSON.stringify(updatedUsers)
+      safeSetItem('users', usersString)
+      
+      console.log('Test account created:', testUser)
+      return testUser
+    } catch (error) {
+      console.error('Error creating test account:', error)
+      return null
+    }
   }
 
   const value = {
@@ -461,6 +535,7 @@ export function AuthProvider({ children }) {
     updateMenu,
     deleteMenu,
     validateSession,
+    createTestAccount,
     isStorageAvailable: isStorageAvailable()
   }
 
