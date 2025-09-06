@@ -159,7 +159,6 @@ export function AuthProvider({ children }) {
       console.log('=== LOGIN ATTEMPT START ===')
       console.log('Raw email:', `"${email}"`)
       console.log('Raw password length:', password.length)
-      console.log('User agent:', navigator.userAgent)
       
       if (!isStorageAvailable()) {
         throw new Error('Storage not available. Please enable cookies and try again.')
@@ -187,7 +186,7 @@ export function AuthProvider({ children }) {
         console.error('Failed to parse users data:', parseError)
         // Reset corrupted data
         safeSetItem('users', '[]')
-        throw new Error('User data corrupted. Please create a new account.')
+        users = []
       }
       
       // Log all users for debugging
@@ -200,7 +199,7 @@ export function AuthProvider({ children }) {
         })
       })
       
-      // More thorough user matching with detailed logging
+      // FIRST: Try to find existing user with exact matching
       let foundUser = null
       for (let i = 0; i < users.length; i++) {
         const user = users[i]
@@ -215,35 +214,19 @@ export function AuthProvider({ children }) {
         
         if (userEmail === normalizedEmail && userPassword === normalizedPassword) {
           foundUser = user
-          console.log('MATCH FOUND!')
+          console.log('EXISTING USER FOUND!')
           break
         }
       }
       
+      // SECOND: If no user found, throw error (don't auto-create)
       if (!foundUser) {
-        console.log('=== NO USER FOUND ===')
+        console.log('=== NO MATCHING USER FOUND ===')
         console.log('Available emails in storage:', users.map(u => `"${u.email}"`))
-        
-        // Try creating default user for testing
-        const defaultUser = {
-          id: 'default-user',
-          email: normalizedEmail,
-          password: normalizedPassword,
-          businessName: 'Test Business',
-          ownerName: 'Test User',
-          phone: '',
-          address: '',
-          createdAt: new Date().toISOString(),
-          menus: []
-        }
-        
-        console.log('Creating default user for login:', defaultUser)
-        const updatedUsers = [...users, defaultUser]
-        safeSetItem('users', JSON.stringify(updatedUsers))
-        foundUser = defaultUser
+        throw new Error('Invalid email or password. Please check your credentials or create a new account.')
       }
 
-      console.log('Login successful for user:', foundUser.email)
+      console.log('Login successful for existing user:', foundUser.email)
       
       // Set user with retry mechanism
       const userString = JSON.stringify(foundUser)
@@ -586,32 +569,66 @@ export function AuthProvider({ children }) {
     try {
       console.log('=== QUICK LOGIN ATTEMPT ===')
       
-      // Create user on the fly if doesn't exist
+      // Normalize credentials
+      const normalizedEmail = String(email || '').trim().toLowerCase()
+      const normalizedPassword = String(password || '').trim()
+      
+      console.log('Quick login - normalized email:', `"${normalizedEmail}"`)
+      
+      // Get existing users
+      const usersData = safeGetItem('users', '[]')
+      let users = []
+      try {
+        users = JSON.parse(usersData)
+      } catch (parseError) {
+        console.error('Quick login - failed to parse users data:', parseError)
+        users = []
+      }
+      
+      // FIRST: Try to find existing user
+      let foundUser = null
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i]
+        const userEmail = String(user.email || '').trim().toLowerCase()
+        const userPassword = String(user.password || '').trim()
+        
+        if (userEmail === normalizedEmail && userPassword === normalizedPassword) {
+          foundUser = user
+          console.log('Quick login - found existing user:', foundUser.email)
+          break
+        }
+      }
+      
+      // If existing user found, use that
+      if (foundUser) {
+        safeSetItem('currentUser', JSON.stringify(foundUser))
+        setCurrentUser(foundUser)
+        console.log('Quick login successful with existing user')
+        return foundUser
+      }
+      
+      // ONLY if no existing user found, create new one
+      console.log('Quick login - no existing user found, creating new one')
       const quickUser = {
         id: 'quick-' + Date.now(),
-        email: email.trim().toLowerCase(),
-        password: password.trim(),
-        businessName: email.split('@')[0] + "'s Business",
-        ownerName: email.split('@')[0],
+        email: normalizedEmail,
+        password: normalizedPassword,
+        businessName: normalizedEmail.split('@')[0] + "'s Business",
+        ownerName: normalizedEmail.split('@')[0],
         phone: '',
         address: '',
         createdAt: new Date().toISOString(),
         menus: []
       }
       
-      // Save this user to storage
-      const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      
-      // Remove any existing user with same email
-      const filteredUsers = users.filter(u => u.email !== quickUser.email)
-      const updatedUsers = [...filteredUsers, quickUser]
+      // Add new user to storage
+      const updatedUsers = [...users, quickUser]
       
       safeSetItem('users', JSON.stringify(updatedUsers))
       safeSetItem('currentUser', JSON.stringify(quickUser))
       
       setCurrentUser(quickUser)
-      console.log('Quick login successful')
+      console.log('Quick login successful with new user')
       return quickUser
     } catch (error) {
       console.error('Quick login error:', error)
