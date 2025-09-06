@@ -26,28 +26,28 @@ export default function TemplateGallery({ setTemplate }) {
   ]
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-4">
-        <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-purple-500 to-indigo-500 px-4 py-3">
+        <h3 className="text-base sm:text-lg font-semibold text-white flex items-center space-x-2">
           <span>🎨</span>
           <span>Choose Template</span>
         </h3>
       </div>
       
-      <div className="p-6">
-        <div className="grid gap-4">
+      <div className="p-3 sm:p-6">
+        <div className="grid gap-2 sm:gap-4">
           {templates.map(template => (
             <button
               key={template.id}
               onClick={() => setTemplate(template.id)}
-              className="group relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-purple-400 transition-all duration-300 transform hover:scale-105"
+              className="group relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-purple-400 transition-all duration-300 transform hover:scale-105 w-full"
             >
-              <div className={`bg-gradient-to-r ${template.gradient} p-4 text-white`}>
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">{template.icon}</span>
-                  <div className="text-left">
-                    <div className="font-semibold">{template.name}</div>
-                    <div className="text-sm opacity-90">{template.description}</div>
+              <div className={`bg-gradient-to-r ${template.gradient} p-3 sm:p-4 text-white`}>
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <span className="text-xl sm:text-2xl flex-shrink-0">{template.icon}</span>
+                  <div className="text-left min-w-0 flex-1">
+                    <div className="font-semibold text-sm sm:text-base">{template.name}</div>
+                    <div className="text-xs sm:text-sm opacity-90 truncate">{template.description}</div>
                   </div>
                 </div>
               </div>

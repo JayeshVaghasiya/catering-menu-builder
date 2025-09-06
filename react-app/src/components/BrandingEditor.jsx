@@ -55,43 +55,43 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-4">
-        <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-orange-500 to-pink-500 px-4 py-3">
+        <h3 className="text-base sm:text-lg font-semibold text-white flex items-center space-x-2">
           <span>🏪</span>
           <span>Brand Settings</span>
         </h3>
       </div>
       
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Business Info Section */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Business Name</label>
             <input 
               value={brand.businessName} 
               onChange={e=>updateBrand({ businessName: e.target.value })} 
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors text-sm sm:text-base"
               placeholder="Enter your business name"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tagline</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Tagline</label>
             <input 
               value={brand.tagline} 
               onChange={e=>updateBrand({ tagline: e.target.value })} 
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors text-sm sm:text-base"
               placeholder="Your catchy tagline"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Contact Information</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Contact Information</label>
             <textarea 
               value={brand.contact} 
               onChange={e=>updateBrand({ contact: e.target.value })} 
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical text-sm sm:text-base"
               rows="3"
               placeholder="Phone / Email / Address"
             />
@@ -99,17 +99,17 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
         </div>
 
         {/* Services Section */}
-        <div className="border-t border-gray-200 pt-6">
+        <div className="border-t border-gray-200 pt-4 sm:pt-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Services Offered</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Services Offered</label>
             <textarea 
               value={brand.services || ''} 
               onChange={(e) => {
                 console.log('Services onChange called with:', e.target.value)
                 handleBrandUpdate({ services: e.target.value })
               }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
-              rows="6"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical text-sm sm:text-base"
+              rows="4"
               placeholder="Describe your catering services in detail... 
 
 Examples:
@@ -124,15 +124,15 @@ Examples:
           </div>
           
           {/* Special Notes Section */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mt-3 sm:mt-4">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               📝 Special Notes & Terms (for last page)
             </label>
             <textarea
               value={brand.specialNotes || ''}
               onChange={e => updateBrand({ specialNotes: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-y"
-              rows={4}
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-y text-sm sm:text-base"
+              rows={3}
               placeholder="Enter special terms and conditions, notes, or instructions. Each line will become a bullet point on the last page.
 
 Example:
@@ -143,16 +143,18 @@ Example:
             />
             <p className="text-xs text-gray-500 mt-1">Each new line will appear as a bullet point on the last page of your menu</p>
           </div>
-        </div>        {/* Images Section */}
-        <div className="border-t border-gray-200 pt-6 space-y-4">
+        </div>
+
+        {/* Images Section */}
+        <div className="border-t border-gray-200 pt-4 sm:pt-6 space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Business Logo</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Business Logo</label>
             {brand.logoDataUrl && (
               <div className="mb-3">
                 <img 
                   src={brand.logoDataUrl} 
                   alt="Current Logo" 
-                  className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border-2 border-gray-200"
                 />
                 <p className="text-xs text-green-600 mt-1">✓ Logo uploaded</p>
               </div>
@@ -167,11 +169,11 @@ Example:
               />
               <label 
                 htmlFor="logo-upload" 
-                className="flex flex-col sm:flex-row items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
+                className="flex flex-col items-center justify-center w-full px-3 sm:px-4 py-4 sm:py-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
               >
                 <div className="text-center">
-                  <span className="text-2xl mb-2 block">📸</span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">📸</span>
+                  <span className="text-xs sm:text-sm text-gray-600">
                     {brand.logoDataUrl ? 'Change logo' : 'Click to upload logo'}
                   </span>
                   <span className="text-xs text-gray-500 block mt-1">JPG, PNG up to 5MB</span>
@@ -181,18 +183,18 @@ Example:
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Ganapati Image</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Ganapati Image</label>
             {brand.ganapatiDataUrl && (
               <div className="mb-3">
                 <img 
                   src={brand.ganapatiDataUrl} 
                   alt="Current Ganapati" 
-                  className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border-2 border-gray-200"
                 />
                 <p className="text-xs text-green-600 mt-1">✓ Ganapati image uploaded</p>
               </div>
             )}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <div className="relative">
                 <input 
                   type="file" 
@@ -203,11 +205,11 @@ Example:
                 />
                 <label 
                   htmlFor="ganapati-upload" 
-                  className="flex flex-col sm:flex-row items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
+                  className="flex flex-col items-center justify-center w-full px-3 sm:px-4 py-4 sm:py-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer"
                 >
                   <div className="text-center">
-                    <span className="text-2xl mb-2 block">🕉️</span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">🕉️</span>
+                    <span className="text-xs sm:text-sm text-gray-600">
                       {brand.ganapatiDataUrl && brand.ganapatiDataUrl !== sampleGanapati 
                         ? 'Change Ganapati image' 
                         : 'Click to upload Ganapati image'
@@ -219,7 +221,7 @@ Example:
               </div>
               <button 
                 onClick={useSampleGanapati} 
-                className="w-full px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-lg hover:from-yellow-500 hover:to-orange-500 transition-all duration-200 font-medium text-sm"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-lg hover:from-yellow-500 hover:to-orange-500 transition-all duration-200 font-medium text-xs sm:text-sm"
               >
                 🎨 Use Sample Ganapati
               </button>
@@ -228,12 +230,12 @@ Example:
         </div>
 
         {/* Template Selection */}
-        <div className="border-t border-gray-200 pt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">Design Template</label>
+        <div className="border-t border-gray-200 pt-4 sm:pt-6">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">Design Template</label>
           <select 
             value={template} 
             onChange={e=>setTemplate(e.target.value)} 
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white text-sm sm:text-base"
           >
             <option value="festival">🎉 Festival Theme</option>
             <option value="minimalist">✨ Minimalist Theme</option>

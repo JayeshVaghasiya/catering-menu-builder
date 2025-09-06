@@ -495,28 +495,28 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
   const colors = getTemplateColors()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Preview Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+      <div className="flex flex-col space-y-3 sm:space-y-4 lg:flex-row lg:justify-between lg:items-start lg:space-y-0">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Menu Preview</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Menu Preview</h3>
+          <p className="text-xs sm:text-sm text-gray-600">
             Template: {template.charAt(0).toUpperCase() + template.slice(1)} • 
             {mealTypes.length} meal type{mealTypes.length !== 1 ? 's' : ''} • 
-            Auto-pagination for quality (max 3 categories per page)
+            Auto-pagination for quality
           </p>
         </div>
         <button 
           onClick={exportPdf} 
           disabled={isExporting}
-          className={`px-6 py-3 bg-gradient-to-r ${isExporting 
+          className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r ${isExporting 
             ? 'from-gray-400 to-gray-500 cursor-not-allowed' 
             : 'from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
-          } text-white rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-lg font-medium disabled:opacity-70`}
+          } text-white rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg font-medium disabled:opacity-70 text-sm sm:text-base`}
         >
           {isExporting ? (
             <>
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent"></div>
               <span>Generating PDF...</span>
             </>
           ) : (
@@ -529,22 +529,23 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
       </div>
 
       {/* Preview Container */}
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-8">
         {/* Branding Page Preview */}
-        <div className="bg-gray-100 p-6 rounded-xl">
-          <h4 className="text-sm font-medium text-gray-700 mb-4 flex items-center space-x-2">
+        <div className="bg-gray-100 p-3 sm:p-6 rounded-lg sm:rounded-xl">
+          <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3 sm:mb-4 flex items-center space-x-2">
             <span>📄</span>
             <span>Page 1: Business Profile</span>
           </h4>
-          <div className="flex justify-center">
+          <div className="flex justify-center overflow-x-auto">
             <div 
               ref={brandingRef} 
-              className="bg-white shadow-lg rounded-lg overflow-hidden"
+              className="bg-white shadow-lg rounded-lg overflow-hidden flex-shrink-0"
               style={{ 
-                width: '600px', 
-                height: '800px',
+                width: window.innerWidth < 640 ? '280px' : '600px', 
+                height: window.innerWidth < 640 ? '350px' : '800px',
                 background: colors.brandingBg,
-                transformOrigin: 'top center'
+                transformOrigin: 'top center',
+                transform: window.innerWidth < 640 ? 'scale(0.5)' : 'scale(1)'
               }}
             >
               {/* Business Profile Page Layout */}
@@ -663,20 +664,21 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
 
         {/* Menu Pages Preview */}
         {mealTypes.map((mealType, index) => (
-          <div key={mealType.id} className="bg-gray-100 p-6 rounded-xl">
-            <h4 className="text-sm font-medium text-gray-700 mb-4 flex items-center space-x-2">
+          <div key={mealType.id} className="bg-gray-100 p-3 sm:p-6 rounded-lg sm:rounded-xl">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3 sm:mb-4 flex items-center space-x-2">
               <span>📋</span>
               <span>Page {index + 2}: {mealType.name} Menu</span>
             </h4>
-            <div className="flex justify-center">
+            <div className="flex justify-center overflow-x-auto">
               <div 
                 ref={el => menuRefs.current[index] = el}
-                className="shadow-lg rounded-lg overflow-hidden flex flex-col"
+                className="shadow-lg rounded-lg overflow-hidden flex flex-col flex-shrink-0"
                 style={{ 
-                  width: '600px', 
-                  minHeight: '800px',
+                  width: window.innerWidth < 640 ? '280px' : '600px', 
+                  minHeight: window.innerWidth < 640 ? '350px' : '800px',
                   background: 'linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%)',
-                  transformOrigin: 'top center'
+                  transformOrigin: 'top center',
+                  transform: window.innerWidth < 640 ? 'scale(0.5)' : 'scale(1)'
                 }}
               >
                 {/* Clean Header with Sample Images */}
@@ -801,19 +803,20 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
 
         {/* Special Notes Page Preview */}
         {brand.specialNotes && brand.specialNotes.trim() && (
-          <div className="bg-gray-100 p-6 rounded-xl">
-            <h4 className="text-sm font-medium text-gray-700 mb-4 flex items-center space-x-2">
+          <div className="bg-gray-100 p-3 sm:p-6 rounded-lg sm:rounded-xl">
+            <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3 sm:mb-4 flex items-center space-x-2">
               <span>📝</span>
               <span>Page {mealTypes.length + 2}: Special Notes & Terms</span>
             </h4>
-            <div className="flex justify-center">
+            <div className="flex justify-center overflow-x-auto">
               <div 
-                className="shadow-lg rounded-lg overflow-hidden"
+                className="shadow-lg rounded-lg overflow-hidden flex-shrink-0"
                 style={{ 
-                  width: '600px', 
-                  minHeight: '800px',
+                  width: window.innerWidth < 640 ? '280px' : '600px', 
+                  minHeight: window.innerWidth < 640 ? '350px' : '800px',
                   background: 'linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%)',
-                  transformOrigin: 'top center'
+                  transformOrigin: 'top center',
+                  transform: window.innerWidth < 640 ? 'scale(0.5)' : 'scale(1)'
                 }}
               >
                 {/* Header */}

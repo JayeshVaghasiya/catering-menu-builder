@@ -7,6 +7,7 @@ import MenuEditor from './components/MenuEditor'
 import Preview from './components/Preview'
 import TemplateGallery from './components/TemplateGallery'
 import MobileDebugger from './components/MobileDebugger'
+import MobileHelper from './components/MobileHelper'
 import sampleGanapati from './assets/sample-ganapati.jpg'
 
 function MenuCreator({ editingMenu = null, onSave, onCancel }) {
@@ -232,9 +233,9 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
       </div>
 
       {/* Mobile-Responsive Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-20">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4 pb-20">
         {/* Mobile: Stacked Layout */}
-        <div className="lg:hidden space-y-6">
+        <div className="lg:hidden space-y-4">
           <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
           <TemplateGallery setTemplate={setTemplate} />
           <MenuEditor 
@@ -248,31 +249,34 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
             removeCategory={removeCategory}
           />
           {/* Mobile Preview at Bottom */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
-              <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3">
+              <h3 className="text-base font-semibold text-white flex items-center space-x-2">
                 <span>👁️</span>
                 <span>Live Preview</span>
               </h3>
             </div>
-            <div className="p-4 overflow-x-auto">
-              <Preview 
-                ref={previewRef} 
-                brand={brand} 
-                mealTypes={mealTypes} 
-                template={template} 
-              />
+            <div className="p-2 overflow-x-auto overflow-y-auto max-h-96">
+              <div className="min-w-full">
+                <Preview 
+                  ref={previewRef} 
+                  brand={brand} 
+                  mealTypes={mealTypes} 
+                  template={template} 
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Mobile Floating Export Button */}
-        <div className="lg:hidden fixed bottom-6 right-6 z-20">
+        <div className="lg:hidden fixed bottom-4 right-4 z-20">
           <button
             onClick={() => previewRef.current?.exportPdf()}
-            className="w-14 h-14 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center"
+            className="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center"
+            title="Export PDF"
           >
-            <span className="text-xl">📄</span>
+            <span className="text-lg">📄</span>
           </button>
         </div>
 

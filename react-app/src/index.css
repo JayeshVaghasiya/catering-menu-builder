@@ -4,6 +4,49 @@
 
 html, body, #root { height: 100%; }
 
+/* Mobile viewport improvements */
+@viewport {
+  width: device-width;
+  zoom: 1.0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+  
+  /* Ensure all interactive elements are at least 44px for touch */
+  button, input, select, textarea, a {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Better text rendering on mobile */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Horizontal scroll containers */
+  .mobile-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
@@ -33,6 +76,27 @@ input:focus, select:focus, textarea:focus {
   outline: none;
 }
 
+/* Better responsive image handling */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  .text-responsive {
+    font-size: 0.875rem; /* 14px */
+  }
+  
+  .padding-responsive {
+    padding: 0.75rem; /* 12px */
+  }
+  
+  .margin-responsive {
+    margin: 0.5rem; /* 8px */
+  }
+}
+
 /* Custom animations */
 @keyframes fadeInUp {
   from {
@@ -42,6 +106,56 @@ input:focus, select:focus, textarea:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Prevent horizontal overflow */
+body {
+  overflow-x: hidden;
+}
+
+/* Better form field styling for mobile */
+@media (max-width: 768px) {
+  .form-input {
+    padding: 12px 16px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  .form-textarea {
+    padding: 12px 16px;
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 120px;
+  }
+  
+  .form-select {
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+}
+
+/* Fixed positioning improvements for mobile */
+@media (max-width: 768px) {
+  .mobile-fixed {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 50;
+  }
+}
+
+/* Ensure buttons are accessible on mobile */
+@media (max-width: 768px) {
+  .mobile-button {
+    min-height: 48px;
+    padding: 12px 24px;
+    font-size: 16px;
+    touch-action: manipulation;
   }
 }
 
