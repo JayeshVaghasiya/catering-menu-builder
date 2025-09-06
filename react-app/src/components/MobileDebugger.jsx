@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function MobileDebugger() {
-  const { isStorageAvailable, createTestAccount } = useAuth()
+  const { isStorageAvailable, createTestAccount, cleanupTestAccounts, currentUser } = useAuth()
   const [debugInfo, setDebugInfo] = useState({})
   const [showDebug, setShowDebug] = useState(false)
   const [testResults, setTestResults] = useState('')
@@ -82,6 +82,21 @@ export default function MobileDebugger() {
     }
   }
 
+  const runCleanup = () => {
+    setTestResults('Running cleanup...')
+    
+    try {
+      const result = cleanupTestAccounts()
+      if (result.success) {
+        setTestResults(`✅ ${result.message}`)
+      } else {
+        setTestResults(`❌ ${result.message}`)
+      }
+    } catch (error) {
+      setTestResults(`❌ Cleanup failed: ${error.message}`)
+    }
+  }
+
   const clearTestData = () => {
     try {
       const usersData = localStorage.getItem('users')
@@ -122,6 +137,25 @@ export default function MobileDebugger() {
             </button>
           </div>
           
+        <div className="space-y-3">
+          {/* Current User Info */}
+          <div className="bg-blue-50 p-3 rounded border">
+            <h4 className="font-semibold text-blue-800 mb-2">Current User:</h4>
+            {currentUser ? (
+              <div className="text-xs space-y-1">
+                <div><span className="font-medium">Email:</span> {currentUser.email}</div>
+                <div><span className="font-medium">ID:</span> {currentUser.id}</div>
+                <div><span className="font-medium">Business:</span> {currentUser.businessName}</div>
+                <div><span className="font-medium">Owner:</span> {currentUser.ownerName}</div>
+                <div className={`font-medium ${currentUser.id?.startsWith('test-') || currentUser.id?.startsWith('quick-') || currentUser.email === 'test@example.com' ? 'text-red-600' : 'text-green-600'}`}>
+                  {currentUser.id?.startsWith('test-') || currentUser.id?.startsWith('quick-') || currentUser.email === 'test@example.com' ? '⚠️ TEST ACCOUNT' : '✅ REAL ACCOUNT'}
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-500 text-xs">Not logged in</div>
+            )}
+          </div>
+
           <div className="space-y-2">
             {Object.entries(debugInfo).map(([key, value]) => (
               <div key={key} className="border-b border-gray-100 pb-1">
@@ -136,6 +170,13 @@ export default function MobileDebugger() {
           </div>
           
           <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+            <button
+              onClick={runCleanup}
+              className="w-full bg-orange-600 text-white py-2 px-3 rounded text-xs hover:bg-orange-700 transition-colors font-medium"
+            >
+              🧹 Clean Up Test Accounts
+            </button>
+            
             <button
               onClick={runLoginTest}
               className="w-full bg-green-600 text-white py-2 px-3 rounded text-xs hover:bg-green-700 transition-colors"
@@ -165,6 +206,7 @@ export default function MobileDebugger() {
                 {testResults}
               </div>
             )}
+          </div>
           </div>
         </div>
       )}

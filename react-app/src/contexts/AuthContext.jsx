@@ -564,6 +564,76 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Clean up test accounts and force fresh login
+  const cleanupTestAccounts = () => {
+    try {
+      console.log('=== CLEANING UP TEST ACCOUNTS ===')
+      
+      // Get current user
+      const currentUserData = safeGetItem('currentUser', '{}')
+      let currentUserObj = {}
+      try {
+        currentUserObj = JSON.parse(currentUserData)
+      } catch (e) {
+        console.log('No current user or corrupted data')
+      }
+      
+      console.log('Current user before cleanup:', {
+        email: currentUserObj.email,
+        id: currentUserObj.id,
+        businessName: currentUserObj.businessName
+      })
+      
+      // Check if current user is a test account
+      const isTestUser = currentUserObj.email === 'test@example.com' || 
+                        currentUserObj.id?.startsWith('test-user-') ||
+                        currentUserObj.id?.startsWith('quick-') ||
+                        currentUserObj.businessName?.includes('Test')
+      
+      if (isTestUser) {
+        console.log('Current user is a test account, logging out...')
+        logout()
+      }
+      
+      // Clean up test accounts from storage
+      const usersData = safeGetItem('users', '[]')
+      let users = []
+      try {
+        users = JSON.parse(usersData)
+      } catch (e) {
+        console.log('No users data or corrupted')
+        return { success: true, message: 'No users data to clean' }
+      }
+      
+      const beforeCount = users.length
+      
+      // Remove test accounts
+      const cleanedUsers = users.filter(user => {
+        const isTest = user.email === 'test@example.com' || 
+                      user.id?.startsWith('test-user-') ||
+                      user.id?.startsWith('quick-') ||
+                      user.businessName?.includes('Test')
+        return !isTest
+      })
+      
+      const afterCount = cleanedUsers.length
+      const removedCount = beforeCount - afterCount
+      
+      safeSetItem('users', JSON.stringify(cleanedUsers))
+      
+      console.log(`Cleanup complete: Removed ${removedCount} test accounts`)
+      console.log(`Remaining users: ${afterCount}`)
+      
+      return { 
+        success: true, 
+        message: `Cleaned up ${removedCount} test accounts. ${afterCount} real accounts remain.` 
+      }
+    } catch (error) {
+      console.error('Error cleaning up test accounts:', error)
+      return { success: false, message: 'Error during cleanup: ' + error.message }
+    }
+  }
+
   // Quick login that bypasses validation issues
   const quickLogin = async (email, password) => {
     try {
@@ -674,6 +744,7 @@ export function AuthProvider({ children }) {
     deleteMenu,
     validateSession,
     createTestAccount,
+    cleanupTestAccounts,
     isStorageAvailable: isStorageAvailable()
   }
 
