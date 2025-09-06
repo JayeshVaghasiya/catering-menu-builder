@@ -163,7 +163,9 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
         
         // Create menu content for this meal type
         tempMenuDiv.innerHTML = `
-          <div style="min-height: 100vh; background: linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%); padding: 40px;">
+          <div style="min-height: 100vh; background: linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%); 
+                     padding: 40px; display: flex; flex-direction: column; box-sizing: border-box;">
+            
             <!-- Clean Header with Sample Images -->
             <div style="background: linear-gradient(135deg, ${colors.headerColor} 0%, #FB923C 100%); 
                         border-radius: 20px; padding: 40px; text-align: center; position: relative; 
@@ -211,41 +213,43 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
               </p>
             </div>
             
-            <!-- Clean Menu Categories -->
-            ${mealType.categories.map((cat, catIndex) => `
-              <div style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 25px; 
-                          box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-left: 5px solid ${colors.categoryColor};">
-                
-                <!-- Category Header -->
-                <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                  <div style="width: 40px; height: 40px; background: ${colors.categoryColor}; 
-                              border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                              margin-right: 15px;">
-                    <span style="font-size: 20px; color: white;">${catIndex === 0 ? '🍛' : catIndex === 1 ? '🥘' : catIndex === 2 ? '🍚' : '🍽️'}</span>
-                  </div>
-                  <h3 style="font-size: 24px; font-weight: 600; color: ${colors.categoryColor}; margin: 0;">
-                    ${cat.name || 'Category'}
-                  </h3>
-                </div>
-                
-                <!-- Simple Dishes List -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                  ${cat.dishes.map(dish => `
-                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
-                      <div style="width: 8px; height: 8px; background: ${colors.categoryColor}; 
-                                  border-radius: 50%; flex-shrink: 0;"></div>
-                      <span style="font-size: 16px; line-height: 1.4; color: ${colors.textColor}; font-weight: 400;">
-                        ${dish || 'Dish'}
-                      </span>
+            <!-- Menu Categories Container - Flexible Content -->
+            <div style="flex: 1; display: flex; flex-direction: column;">
+              ${mealType.categories.map((cat, catIndex) => `
+                <div style="background: white; border-radius: 15px; padding: 30px; margin-bottom: 25px; 
+                            box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-left: 5px solid ${colors.categoryColor};">
+                  
+                  <!-- Category Header -->
+                  <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="width: 40px; height: 40px; background: ${colors.categoryColor}; 
+                                border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                margin-right: 15px;">
+                      <span style="font-size: 20px; color: white;">${catIndex === 0 ? '🍛' : catIndex === 1 ? '🥘' : catIndex === 2 ? '🍚' : '🍽️'}</span>
                     </div>
-                  `).join('')}
+                    <h3 style="font-size: 24px; font-weight: 600; color: ${colors.categoryColor}; margin: 0;">
+                      ${cat.name || 'Category'}
+                    </h3>
+                  </div>
+                  
+                  <!-- Simple Dishes List -->
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+                    ${cat.dishes.map(dish => `
+                      <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                        <div style="width: 8px; height: 8px; background: ${colors.categoryColor}; 
+                                    border-radius: 50%; flex-shrink: 0;"></div>
+                        <span style="font-size: 16px; line-height: 1.4; color: ${colors.textColor}; font-weight: 400;">
+                          ${dish || 'Dish'}
+                        </span>
+                      </div>
+                    `).join('')}
+                  </div>
                 </div>
-              </div>
-            `).join('')}
+              `).join('')}
+            </div>
             
-            <!-- Simple Footer with Sample Images -->
+            <!-- Footer - Thank You Message at Bottom -->
             <div style="background: linear-gradient(135deg, #F8F9FA 0%, white 100%); 
-                        border-radius: 15px; padding: 25px; text-align: center; margin-top: 30px; 
+                        border-radius: 15px; padding: 25px; text-align: center; margin-top: auto; 
                         border: 1px solid #E5E7EB; position: relative;">
               
               <!-- Bottom Corner Images -->
@@ -573,7 +577,7 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
             <div className="flex justify-center">
               <div 
                 ref={el => menuRefs.current[index] = el}
-                className="shadow-lg rounded-lg overflow-hidden"
+                className="shadow-lg rounded-lg overflow-hidden flex flex-col"
                 style={{ 
                   width: '600px', 
                   minHeight: '800px',
@@ -676,23 +680,25 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                     </div>
                   )}
                   
-                  {/* Simple Footer with Sample Images */}
-                  <div className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-6 text-center border border-gray-200 relative mt-8">
-                    {/* Bottom Corner Images */}
-                    <div className="absolute bottom-4 left-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
-                      <img src="/src/assets/sample-3.jpg" alt="Food" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="absolute bottom-4 right-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
-                      <img src="/src/assets/sample-5.jpg" alt="Food" className="w-full h-full object-cover" />
-                    </div>
-                    
-                    <h4 className="text-base font-medium mb-2" style={{ color: colors.categoryColor }}>
-                      Thank you for choosing {brand.businessName || 'us'}!
-                    </h4>
-                    <p className="text-xs" style={{ color: colors.textColor }}>
-                      Authentic flavors for your special occasions
-                    </p>
+                  {/* Simple Footer with Sample Images - Moved to Bottom */}
+                </div>
+                
+                {/* Footer at Bottom of Page */}
+                <div className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-6 text-center border border-gray-200 relative mt-auto">
+                  {/* Bottom Corner Images */}
+                  <div className="absolute bottom-4 left-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
+                    <img src="/src/assets/sample-3.jpg" alt="Food" className="w-full h-full object-cover" />
                   </div>
+                  <div className="absolute bottom-4 right-4 w-10 h-10 rounded-full overflow-hidden border-2" style={{ borderColor: colors.categoryColor }}>
+                    <img src="/src/assets/sample-5.jpg" alt="Food" className="w-full h-full object-cover" />
+                  </div>
+                  
+                  <h4 className="text-base font-medium mb-2" style={{ color: colors.categoryColor }}>
+                    Thank you for choosing {brand.businessName || 'us'}!
+                  </h4>
+                  <p className="text-xs" style={{ color: colors.textColor }}>
+                    Authentic flavors for your special occasions
+                  </p>
                 </div>
               </div>
             </div>
