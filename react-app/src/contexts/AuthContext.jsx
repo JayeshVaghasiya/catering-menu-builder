@@ -22,593 +22,143 @@ export function AuthProvider({ children }) {
       localStorage.removeItem(testKey)
       return true
     } catch (e) {
+      console.warn('localStorage not available:', e)
       return false
     }
   }
 
-  // Safe localStorage operations with fallbacks
-  const safeSetItem = (key, value) => {
-    try {
-      if (isStorageAvailable()) {
-        localStorage.setItem(key, value)
-        return true
-      } else {
-        console.warn('localStorage not available, data will not persist')
-        return false
-      }
-    } catch (error) {
-      console.error('Error saving to localStorage:', error)
-      return false
-    }
-  }
-
+  // Safe localStorage operations
   const safeGetItem = (key, defaultValue = null) => {
     try {
-      if (isStorageAvailable()) {
-        const item = localStorage.getItem(key)
-        return item !== null ? item : defaultValue
-      }
-      return defaultValue
+      if (!isStorageAvailable()) return defaultValue
+      const item = localStorage.getItem(key)
+      return item || defaultValue
     } catch (error) {
-      console.error('Error reading from localStorage:', error)
+      console.warn(`Error getting ${key} from localStorage:`, error)
       return defaultValue
     }
   }
 
-  useEffect(() => {
-    // Check if user is logged in on app start with mobile-safe storage access
-    const loadUser = async () => {
-      try {
-        // Test localStorage availability (can fail on mobile in private mode)
-        if (!isStorageAvailable()) {
-          console.warn('localStorage not available - using session storage')
-          setLoading(false)
-          return
-        }
+  const safeSetItem = (key, value) => {
+    try {
+      if (!isStorageAvailable()) return false
+      localStorage.setItem(key, value)
+      return true
+    } catch (error) {
+      console.warn(`Error setting ${key} in localStorage:`, error)
+      return false
+    }
+  }
 
+  const safeRemoveItem = (key) => {
+    try {
+      if (!isStorageAvailable()) return false
+      localStorage.removeItem(key)
+      return true
+    } catch (error) {
+      console.warn(`Error removing ${key} from localStorage:`, error)
+      return false
+    }
+  }
+
+  // Check session on mount
+  useEffect(() => {
+    const validateSession = () => {
+      try {
         const userData = safeGetItem('currentUser')
         if (userData) {
-          const parsedUser = JSON.parse(userData)
-          // Validate user data structure
-          if (parsedUser && parsedUser.id && parsedUser.email) {
-            setCurrentUser(parsedUser)
-          } else {
-            // Clean up corrupted user data
-            if (isStorageAvailable()) {
-              localStorage.removeItem('currentUser')
-            }
-          }
+          const user = JSON.parse(userData)
+          setCurrentUser(user)
         }
       } catch (error) {
-        console.error('Error loading user:', error)
-        // Clean up on parse error
-        try {
-          if (isStorageAvailable()) {
-            localStorage.removeItem('currentUser')
-          }
-        } catch (e) {
-          console.error('Cannot access localStorage:', e)
-        }
+        console.error('Session validation error:', error)
+        // Clear corrupted data
+        safeRemoveItem('currentUser')
       } finally {
         setLoading(false)
       }
     }
 
-    loadUser()
+    validateSession()
   }, [])
 
-  const signup = async (userData) => {
+  const login = async (email, password) => {
     try {
-      console.log('Signup attempt for:', userData.email) // Debug log
+      console.log('🔐 LOGIN ATTEMPT:', { email })
       
-      if (!isStorageAvailable()) {
-        throw new Error('Storage not available. Please enable cookies and try again.')
-      }
-
-      // Normalize email
-      const normalizedEmail = (userData.email || '').trim().toLowerCase()
-      
-      if (!normalizedEmail) {
-        throw new Error('Please enter a valid email address')
-      }
-
       const usersData = safeGetItem('users', '[]')
       const users = JSON.parse(usersData)
       
-      // Check if user already exists with normalized email comparison
-      const existingUser = users.find(u => {
-        const userEmail = (u.email || '').trim().toLowerCase()
-        return userEmail === normalizedEmail
-      })
+      const user = users.find(u => u.email === email && u.password === password)
       
-      if (existingUser) {
-        throw new Error('User already exists with this email')
+      if (user) {
+        console.log('✅ LOGIN SUCCESS:', { email, userId: user.id })
+        
+        // Clean up any test accounts when real user logs in successfully
+        cleanupTestAccounts()
+        
+        safeSetItem('currentUser', JSON.stringify(user))
+        setCurrentUser(user)
+        return user
+      } else {
+        console.log('❌ LOGIN FAILED: Invalid credentials for', email)
+        throw new Error('Invalid credentials')
+      }
+    } catch (error) {
+      console.error('🚨 LOGIN ERROR:', error)
+      throw error
+    }
+  }
+
+  const signup = async (email, password, businessName) => {
+    try {
+      console.log('📝 SIGNUP ATTEMPT:', { email, businessName })
+      
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      // Check if user already exists
+      if (users.find(u => u.email === email)) {
+        console.log('❌ SIGNUP FAILED: User already exists', email)
+        throw new Error('User already exists')
       }
 
       const newUser = {
         id: Date.now().toString(),
-        ...userData,
-        email: normalizedEmail, // Store normalized email
+        email,
+        password,
+        businessName,
         createdAt: new Date().toISOString(),
         menus: []
       }
 
-      const updatedUsers = [...users, newUser]
-      const usersString = JSON.stringify(updatedUsers)
-      const userString = JSON.stringify(newUser)
-      
-      // Save with error handling
-      const usersSaved = safeSetItem('users', usersString)
-      const currentUserSaved = safeSetItem('currentUser', userString)
-      
-      if (!usersSaved || !currentUserSaved) {
-        throw new Error('Unable to create account. Please check your browser settings.')
-      }
-      
+      users.push(newUser)
+      safeSetItem('users', JSON.stringify(users))
+      safeSetItem('currentUser', JSON.stringify(newUser))
       setCurrentUser(newUser)
-      console.log('Signup successful') // Debug log
+      
+      console.log('✅ SIGNUP SUCCESS:', { email, userId: newUser.id })
       return newUser
     } catch (error) {
-      console.error('Signup error:', error) // Debug log
+      console.error('🚨 SIGNUP ERROR:', error)
       throw error
     }
   }
 
-  const login = async (email, password) => {
+  // Enhanced quickLogin with comprehensive debugging and safeguards
+  const quickLogin = async () => {
     try {
-      console.log('=== LOGIN ATTEMPT START ===')
-      console.log('Raw email:', `"${email}"`)
-      console.log('Raw password length:', password.length)
+      console.log('🚀 QUICK LOGIN ATTEMPT - Enhanced Debug Mode')
       
-      if (!isStorageAvailable()) {
-        throw new Error('Storage not available. Please enable cookies and try again.')
-      }
-
-      // Extra careful normalization
-      const normalizedEmail = String(email || '').trim().toLowerCase()
-      const normalizedPassword = String(password || '').trim()
-      
-      console.log('Normalized email:', `"${normalizedEmail}"`)
-      console.log('Normalized password length:', normalizedPassword.length)
-      
-      if (!normalizedEmail || !normalizedPassword) {
-        throw new Error('Please enter both email and password')
-      }
-
-      const usersData = safeGetItem('users', '[]')
-      console.log('Users data from storage:', usersData)
-      
-      let users = []
-      try {
-        users = JSON.parse(usersData)
-        console.log('Parsed users array length:', users.length)
-      } catch (parseError) {
-        console.error('Failed to parse users data:', parseError)
-        // Reset corrupted data
-        safeSetItem('users', '[]')
-        users = []
-      }
-      
-      // Log all users for debugging
-      users.forEach((user, index) => {
-        console.log(`User ${index}:`, {
-          email: `"${user.email}"`,
-          emailLength: user.email?.length,
-          hasPassword: !!user.password,
-          passwordLength: user.password?.length
-        })
-      })
-      
-      // FIRST: Try to find existing user with exact matching
-      let foundUser = null
-      for (let i = 0; i < users.length; i++) {
-        const user = users[i]
-        const userEmail = String(user.email || '').trim().toLowerCase()
-        const userPassword = String(user.password || '').trim()
-        
-        console.log(`Checking user ${i}:`)
-        console.log(`  Stored email: "${userEmail}"`)
-        console.log(`  Input email: "${normalizedEmail}"`)
-        console.log(`  Email match: ${userEmail === normalizedEmail}`)
-        console.log(`  Password match: ${userPassword === normalizedPassword}`)
-        
-        if (userEmail === normalizedEmail && userPassword === normalizedPassword) {
-          foundUser = user
-          console.log('EXISTING USER FOUND!')
-          break
-        }
-      }
-      
-      // SECOND: If no user found, throw error (don't auto-create)
-      if (!foundUser) {
-        console.log('=== NO MATCHING USER FOUND ===')
-        console.log('Available emails in storage:', users.map(u => `"${u.email}"`))
-        throw new Error('Invalid email or password. Please check your credentials or create a new account.')
-      }
-
-      console.log('Login successful for existing user:', foundUser.email)
-      
-      // Set user with retry mechanism
-      const userString = JSON.stringify(foundUser)
-      const saveSuccess = safeSetItem('currentUser', userString)
-      
-      if (!saveSuccess) {
-        throw new Error('Unable to save session. Please check your browser settings.')
-      }
-      
-      setCurrentUser(foundUser)
-      console.log('=== LOGIN SUCCESSFUL ===')
-      return foundUser
-    } catch (error) {
-      console.error('=== LOGIN ERROR ===', error)
-      throw error
-    }
-  }
-
-  const logout = () => {
-    try {
-      if (isStorageAvailable()) {
-        localStorage.removeItem('currentUser')
-      }
-      setCurrentUser(null)
-      console.log('Logout successful') // Debug log
-    } catch (error) {
-      console.error('Logout error:', error)
-      // Force logout even if localStorage fails
-      setCurrentUser(null)
-    }
-  }
-
-  // Validate current session
-  const validateSession = () => {
-    try {
-      if (!currentUser) return false
-      
-      const userData = safeGetItem('currentUser')
-      if (!userData) {
-        setCurrentUser(null)
-        return false
-      }
-      
-      const parsedUser = JSON.parse(userData)
-      if (!parsedUser || parsedUser.id !== currentUser.id) {
-        setCurrentUser(null)
-        return false
-      }
-      
-      return true
-    } catch (error) {
-      console.error('Session validation error:', error)
-      setCurrentUser(null)
-      return false
-    }
-  }
-
-  const updateUserProfile = (updates) => {
-    try {
-      const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      const updatedUsers = users.map(u => 
-        u.id === currentUser.id ? { ...u, ...updates } : u
-      )
-      
-      const updatedUser = { ...currentUser, ...updates }
-      const usersString = JSON.stringify(updatedUsers)
-      const userString = JSON.stringify(updatedUser)
-      
-      safeSetItem('users', usersString)
-      safeSetItem('currentUser', userString)
-      setCurrentUser(updatedUser)
-    } catch (error) {
-      console.error('Error updating user profile:', error)
-      throw new Error('Unable to update profile. Please try again.')
-    }
-  }
-
-  // Storage management utility
-  const getStorageSize = () => {
-    let total = 0
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        total += localStorage[key].length + key.length
-      }
-    }
-    return total
-  }
-
-  const cleanupOldMenus = (userId, forceCleanup = false) => {
-    try {
-      const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      const user = users.find(u => u.id === userId)
-    
-    if (user && user.menus && user.menus.length > 0) {
-      let menusToKeep = 10
-      
-      // If forced cleanup due to storage issues, be more aggressive
-      if (forceCleanup) {
-        menusToKeep = Math.max(3, Math.floor(user.menus.length / 2))
-      }
-      
-      // Keep only the most recent menus
-      if (user.menus.length > menusToKeep) {
-        const sortedMenus = user.menus
-          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-          .slice(0, menusToKeep)
-        
-        const updatedUsers = users.map(u => 
-          u.id === userId ? { ...u, menus: sortedMenus } : u
-        )
-        
-        localStorage.setItem('users', JSON.stringify(updatedUsers))
-        
-        if (currentUser.id === userId) {
-          const updatedCurrentUser = { ...currentUser, menus: sortedMenus }
-          localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser))
-          setCurrentUser(updatedCurrentUser)
-        }
-        
-        return true // Cleanup performed
-      }
-    }
-    return false // No cleanup needed
-    } catch (error) {
-      console.error('Error cleaning up old menus:', error)
-      return false
-    }
-  }
-
-  // Emergency storage cleanup - remove all old data
-  const emergencyCleanup = () => {
-    try {
-      // Keep only current user data and clear everything else
-      const currentUserData = safeGetItem('currentUser')
-      const usersData = safeGetItem('users', '[]')
-      
-      // Clear all localStorage
-      if (isStorageAvailable()) {
-        localStorage.clear()
-      }
-      
-      // Only restore current user with minimal data
-      if (currentUserData) {
-        const user = JSON.parse(currentUserData)
-        const minimalUser = {
-          id: user.id,
-          email: user.email,
-          businessName: user.businessName || '',
-          address: user.address || '',
-          phone: user.phone || '',
-          menus: [] // Start fresh with no menus
-        }
-        
-        safeSetItem('users', JSON.stringify([minimalUser]))
-        safeSetItem('currentUser', JSON.stringify(minimalUser))
-        setCurrentUser(minimalUser)
-      }
-      
-      return true
-    } catch (error) {
-      return false
-    }
-  }
-
-  const saveMenu = (menuData) => {
-    try {
-      // First, let's try to save normally
-      const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      const menuWithId = {
-        id: Date.now().toString(),
-        ...menuData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      
-      const updatedUsers = users.map(u => 
-        u.id === currentUser.id 
-          ? { ...u, menus: [...(u.menus || []), menuWithId] }
-          : u
-      )
-      
-      const updatedUser = {
-        ...currentUser,
-        menus: [...(currentUser.menus || []), menuWithId]
-      }
-      
-      const usersString = JSON.stringify(updatedUsers)
-      const userString = JSON.stringify(updatedUser)
-      
-      safeSetItem('users', usersString)
-      safeSetItem('currentUser', userString)
-      setCurrentUser(updatedUser)
-      
-      return menuWithId
-    } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        // Try emergency cleanup first
-        const cleanupSuccess = emergencyCleanup()
-        
-        if (!cleanupSuccess) {
-          throw new Error('Unable to save menu. Please clear your browser data and try again.')
-        }
-        
-        // Try to save again after emergency cleanup
-        try {
-          const menuWithId = {
-            id: Date.now().toString(),
-            ...menuData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-          
-          const users = [{ ...currentUser, menus: [menuWithId] }]
-          const updatedUser = { ...currentUser, menus: [menuWithId] }
-          
-          const usersString = JSON.stringify(users)
-          const userString = JSON.stringify(updatedUser)
-          
-          safeSetItem('users', usersString)
-          safeSetItem('currentUser', userString)
-          setCurrentUser(updatedUser)
-          
-          alert('Storage was full. We\'ve cleared old data and saved your new menu.')
-          return menuWithId
-        } catch (retryError) {
-          throw new Error('Storage quota exceeded. Please clear your browser data (Settings > Clear browsing data) and try again.')
-        }
-      }
-      throw error
-    }
-  }
-
-  const updateMenu = (menuId, menuData) => {
-    try {
-      const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      const updatedMenuData = {
-        ...menuData,
-        updatedAt: new Date().toISOString()
-      }
-      
-      const updatedUsers = users.map(u => 
-        u.id === currentUser.id 
-          ? { 
-              ...u, 
-              menus: u.menus.map(m => 
-                m.id === menuId ? { ...m, ...updatedMenuData } : m
-              )
-            }
-          : u
-      )
-      
-      const updatedUser = {
-        ...currentUser,
-        menus: currentUser.menus.map(m => 
-          m.id === menuId ? { ...m, ...updatedMenuData } : m
-        )
-      }
-      
-      const usersString = JSON.stringify(updatedUsers)
-      const userString = JSON.stringify(updatedUser)
-      
-      safeSetItem('users', usersString)
-      safeSetItem('currentUser', userString)
-      setCurrentUser(updatedUser)
-    } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        throw new Error('Storage quota exceeded. Please delete some old menus to free up space.')
-      }
-      throw error
-    }
-  }
-
-  const deleteMenu = (menuId) => {
-    try {
       const usersData = safeGetItem('users', '[]')
       const users = JSON.parse(usersData)
       
-      const updatedUsers = users.map(u => 
-        u.id === currentUser.id 
-          ? { ...u, menus: u.menus.filter(m => m.id !== menuId) }
-          : u
-      )
+      console.log('📊 STORAGE STATE:')
+      console.log('- Total users in storage:', users.length)
+      console.log('- Current user in storage:', safeGetItem('currentUser'))
       
-      const updatedUser = {
-        ...currentUser,
-        menus: currentUser.menus.filter(m => m.id !== menuId)
-      }
-      
-      const usersString = JSON.stringify(updatedUsers)
-      const userString = JSON.stringify(updatedUser)
-      
-      safeSetItem('users', usersString)
-      safeSetItem('currentUser', userString)
-      setCurrentUser(updatedUser)
-    } catch (error) {
-      console.error('Error deleting menu:', error)
-      throw new Error('Unable to delete menu. Please try again.')
-    }
-  }
-
-  // Debug function to create a test account for troubleshooting
-  const createTestAccount = () => {
-    try {
-      const testUser = {
-        id: 'test-user-' + Date.now(),
-        email: 'test@example.com',
-        password: '123456',
-        businessName: 'Test Business',
-        ownerName: 'Test Owner',
-        phone: '123-456-7890',
-        address: 'Test Address',
-        createdAt: new Date().toISOString(),
-        menus: []
-      }
-
-      const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      
-      // Remove any existing test user
-      const filteredUsers = users.filter(u => u.email !== 'test@example.com')
-      const updatedUsers = [...filteredUsers, testUser]
-      
-      const usersString = JSON.stringify(updatedUsers)
-      safeSetItem('users', usersString)
-      
-      console.log('Test account created:', testUser)
-      return testUser
-    } catch (error) {
-      console.error('Error creating test account:', error)
-      return null
-    }
-  }
-
-  // Clean up test accounts and force fresh login
-  const cleanupTestAccounts = () => {
-    try {
-      console.log('=== CLEANING UP TEST ACCOUNTS ===')
-      
-      // Get current user
-      const currentUserData = safeGetItem('currentUser', '{}')
-      let currentUserObj = {}
-      try {
-        currentUserObj = JSON.parse(currentUserData)
-      } catch (e) {
-        console.log('No current user or corrupted data')
-      }
-      
-      console.log('Current user before cleanup:', {
-        email: currentUserObj.email,
-        id: currentUserObj.id,
-        businessName: currentUserObj.businessName
-      })
-      
-      // Check if current user is a test account
-      const isTestUser = currentUserObj.email === 'test@example.com' || 
-                        currentUserObj.id?.startsWith('test-user-') ||
-                        currentUserObj.id?.startsWith('quick-') ||
-                        currentUserObj.businessName?.includes('Test')
-      
-      if (isTestUser) {
-        console.log('Current user is a test account, logging out...')
-        logout()
-      }
-      
-      // Clean up test accounts from storage
-      const usersData = safeGetItem('users', '[]')
-      let users = []
-      try {
-        users = JSON.parse(usersData)
-      } catch (e) {
-        console.log('No users data or corrupted')
-        return { success: true, message: 'No users data to clean' }
-      }
-      
-      const beforeCount = users.length
-      
-      // Remove test accounts
-      const cleanedUsers = users.filter(user => {
+      // Check if there are any real (non-test) accounts
+      const realUsers = users.filter(user => {
         const isTest = user.email === 'test@example.com' || 
                       user.id?.startsWith('test-user-') ||
                       user.id?.startsWith('quick-') ||
@@ -616,107 +166,173 @@ export function AuthProvider({ children }) {
         return !isTest
       })
       
-      const afterCount = cleanedUsers.length
-      const removedCount = beforeCount - afterCount
+      console.log('🔍 ACCOUNT ANALYSIS:')
+      console.log('- Real accounts found:', realUsers.length)
+      console.log('- Test accounts found:', users.length - realUsers.length)
       
-      safeSetItem('users', JSON.stringify(cleanedUsers))
-      
-      console.log(`Cleanup complete: Removed ${removedCount} test accounts`)
-      console.log(`Remaining users: ${afterCount}`)
-      
-      return { 
-        success: true, 
-        message: `Cleaned up ${removedCount} test accounts. ${afterCount} real accounts remain.` 
-      }
-    } catch (error) {
-      console.error('Error cleaning up test accounts:', error)
-      return { success: false, message: 'Error during cleanup: ' + error.message }
-    }
-  }
-
-  // Quick login that bypasses validation issues
-  const quickLogin = async (email, password) => {
-    try {
-      console.log('=== QUICK LOGIN ATTEMPT ===')
-      
-      // Normalize credentials
-      const normalizedEmail = String(email || '').trim().toLowerCase()
-      const normalizedPassword = String(password || '').trim()
-      
-      console.log('Quick login - normalized email:', `"${normalizedEmail}"`)
-      
-      // Get existing users
-      const usersData = safeGetItem('users', '[]')
-      let users = []
-      try {
-        users = JSON.parse(usersData)
-      } catch (parseError) {
-        console.error('Quick login - failed to parse users data:', parseError)
-        users = []
+      if (realUsers.length > 0) {
+        console.log('⚠️ PREVENTING QUICK LOGIN: Real accounts exist!')
+        console.log('Real accounts:', realUsers.map(u => ({ 
+          email: u.email, 
+          businessName: u.businessName,
+          id: u.id
+        })))
+        throw new Error('Real accounts exist - please use regular login')
       }
       
-      // FIRST: Try to find existing user
-      let foundUser = null
-      for (let i = 0; i < users.length; i++) {
-        const user = users[i]
-        const userEmail = String(user.email || '').trim().toLowerCase()
-        const userPassword = String(user.password || '').trim()
-        
-        if (userEmail === normalizedEmail && userPassword === normalizedPassword) {
-          foundUser = user
-          console.log('Quick login - found existing user:', foundUser.email)
-          break
-        }
-      }
+      // Only create test account if no real accounts exist
+      console.log('✅ CREATING TEST ACCOUNT: No real accounts found')
       
-      // If existing user found, use that
-      if (foundUser) {
-        safeSetItem('currentUser', JSON.stringify(foundUser))
-        setCurrentUser(foundUser)
-        console.log('Quick login successful with existing user')
-        return foundUser
-      }
-      
-      // ONLY if no existing user found, create new one
-      console.log('Quick login - no existing user found, creating new one')
-      const quickUser = {
-        id: 'quick-' + Date.now(),
-        email: normalizedEmail,
-        password: normalizedPassword,
-        businessName: normalizedEmail.split('@')[0] + "'s Business",
-        ownerName: normalizedEmail.split('@')[0],
-        phone: '',
-        address: '',
+      const testUser = {
+        id: `quick-${Date.now()}`,
+        email: 'test@example.com',
+        password: 'test123',
+        businessName: 'Test Business',
         createdAt: new Date().toISOString(),
         menus: []
       }
+
+      users.push(testUser)
+      safeSetItem('users', JSON.stringify(users))
+      safeSetItem('currentUser', JSON.stringify(testUser))
+      setCurrentUser(testUser)
       
-      // Add new user to storage
-      const updatedUsers = [...users, quickUser]
-      
-      safeSetItem('users', JSON.stringify(updatedUsers))
-      safeSetItem('currentUser', JSON.stringify(quickUser))
-      
-      setCurrentUser(quickUser)
-      console.log('Quick login successful with new user')
-      return quickUser
+      console.log('✅ QUICK LOGIN SUCCESS - Test account created')
+      return testUser
     } catch (error) {
-      console.error('Quick login error:', error)
+      console.error('🚨 QUICK LOGIN ERROR:', error)
       throw error
     }
   }
 
-  // Guest login for immediate access
+  // Create a test account for emergency access
+  const createTestAccount = async () => {
+    try {
+      console.log('🆘 CREATING EMERGENCY TEST ACCOUNT')
+      
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      // Remove any existing test accounts first
+      const filteredUsers = users.filter(user => 
+        user.email !== 'test@example.com' && 
+        !user.id?.startsWith('test-user-') &&
+        !user.id?.startsWith('quick-')
+      )
+      
+      const testUser = {
+        id: `test-user-${Date.now()}`,
+        email: 'test@example.com',
+        password: 'test123',
+        businessName: 'Emergency Test Account',
+        createdAt: new Date().toISOString(),
+        menus: []
+      }
+
+      filteredUsers.push(testUser)
+      safeSetItem('users', JSON.stringify(filteredUsers))
+      safeSetItem('currentUser', JSON.stringify(testUser))
+      setCurrentUser(testUser)
+      
+      console.log('✅ EMERGENCY TEST ACCOUNT CREATED')
+      return testUser
+    } catch (error) {
+      console.error('🚨 ERROR CREATING EMERGENCY ACCOUNT:', error)
+      throw error
+    }
+  }
+
+  // Clean up test accounts and force fresh login
+  const cleanupTestAccounts = () => {
+    try {
+      console.log('🧹 CLEANING UP TEST ACCOUNTS')
+      
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      const beforeCount = users.length
+      
+      // Remove test accounts
+      const cleanUsers = users.filter(user => {
+        const isTest = user.email === 'test@example.com' || 
+                      user.id?.startsWith('test-user-') ||
+                      user.id?.startsWith('quick-') ||
+                      user.businessName?.includes('Test')
+        
+        if (isTest) {
+          console.log('🗑️ Removing test account:', {
+            email: user.email,
+            id: user.id,
+            businessName: user.businessName
+          })
+        }
+        
+        return !isTest
+      })
+      
+      const afterCount = cleanUsers.length
+      const removedCount = beforeCount - afterCount
+      
+      if (removedCount > 0) {
+        safeSetItem('users', JSON.stringify(cleanUsers))
+        console.log(`✅ CLEANUP COMPLETE: Removed ${removedCount} test accounts`)
+      } else {
+        console.log('✅ CLEANUP COMPLETE: No test accounts to remove')
+      }
+      
+      return { removed: removedCount, remaining: afterCount }
+    } catch (error) {
+      console.error('🚨 CLEANUP ERROR:', error)
+      return { error: error.message }
+    }
+  }
+
+  // Debug function to show all accounts
+  const debugShowAllAccounts = () => {
+    try {
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      
+      console.log('=== ALL ACCOUNTS DEBUG ===')
+      console.log('Total accounts:', users.length)
+      
+      users.forEach((user, index) => {
+        const isTest = user.email === 'test@example.com' || 
+                      user.id?.startsWith('test-user-') ||
+                      user.id?.startsWith('quick-') ||
+                      user.businessName?.includes('Test')
+        
+        console.log(`Account ${index + 1}:`, {
+          email: user.email,
+          id: user.id,
+          businessName: user.businessName,
+          isTest: isTest ? '⚠️ TEST ACCOUNT' : '✅ REAL ACCOUNT',
+          createdAt: user.createdAt
+        })
+      })
+      
+      const currentUserData = safeGetItem('currentUser', '{}')
+      const currentUser = JSON.parse(currentUserData)
+      console.log('Current logged in user:', {
+        email: currentUser.email,
+        id: currentUser.id,
+        businessName: currentUser.businessName
+      })
+      
+      return { totalAccounts: users.length, accounts: users, currentUser }
+    } catch (error) {
+      console.error('Error in debugShowAllAccounts:', error)
+      return { error: error.message }
+    }
+  }
+
   const guestLogin = async () => {
     try {
       const guestUser = {
-        id: 'guest-' + Date.now(),
-        email: 'guest@menubuilder.app',
-        password: 'guest123',
-        businessName: 'Guest Business',
-        ownerName: 'Guest User',
-        phone: '',
-        address: '',
+        id: `guest-${Date.now()}`,
+        email: 'guest@catering.app',
+        businessName: 'Guest User',
+        isGuest: true,
         createdAt: new Date().toISOString(),
         menus: []
       }
@@ -728,6 +344,110 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Guest login error:', error)
       throw error
+    }
+  }
+
+  const logout = () => {
+    safeRemoveItem('currentUser')
+    setCurrentUser(null)
+  }
+
+  const updateUserProfile = async (updates) => {
+    try {
+      if (!currentUser) throw new Error('No user logged in')
+
+      const updatedUser = { ...currentUser, ...updates }
+      
+      // Update in users array
+      const usersData = safeGetItem('users', '[]')
+      const users = JSON.parse(usersData)
+      const userIndex = users.findIndex(u => u.id === currentUser.id)
+      
+      if (userIndex !== -1) {
+        users[userIndex] = updatedUser
+        safeSetItem('users', JSON.stringify(users))
+      }
+      
+      // Update current user
+      safeSetItem('currentUser', JSON.stringify(updatedUser))
+      setCurrentUser(updatedUser)
+      
+      return updatedUser
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      throw error
+    }
+  }
+
+  const saveMenu = async (menuData) => {
+    try {
+      if (!currentUser) throw new Error('No user logged in')
+
+      const newMenu = {
+        ...menuData,
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      const updatedUser = {
+        ...currentUser,
+        menus: [...(currentUser.menus || []), newMenu]
+      }
+
+      await updateUserProfile({ menus: updatedUser.menus })
+      return newMenu
+    } catch (error) {
+      console.error('Error saving menu:', error)
+      throw error
+    }
+  }
+
+  const updateMenu = async (menuId, menuData) => {
+    try {
+      if (!currentUser) throw new Error('No user logged in')
+
+      const updatedMenus = (currentUser.menus || []).map(menu =>
+        menu.id === menuId
+          ? { ...menu, ...menuData, updatedAt: new Date().toISOString() }
+          : menu
+      )
+
+      await updateUserProfile({ menus: updatedMenus })
+      return updatedMenus.find(m => m.id === menuId)
+    } catch (error) {
+      console.error('Error updating menu:', error)
+      throw error
+    }
+  }
+
+  const deleteMenu = async (menuId) => {
+    try {
+      if (!currentUser) throw new Error('No user logged in')
+
+      const updatedMenus = (currentUser.menus || []).filter(menu => menu.id !== menuId)
+      await updateUserProfile({ menus: updatedMenus })
+      return true
+    } catch (error) {
+      console.error('Error deleting menu:', error)
+      throw error
+    }
+  }
+
+  const validateSession = () => {
+    try {
+      const userData = safeGetItem('currentUser')
+      if (userData) {
+        const user = JSON.parse(userData)
+        setCurrentUser(user)
+        return user
+      }
+      return null
+    } catch (error) {
+      console.error('Session validation error:', error)
+      safeRemoveItem('currentUser')
+      return null
     }
   }
 
@@ -745,6 +465,7 @@ export function AuthProvider({ children }) {
     validateSession,
     createTestAccount,
     cleanupTestAccounts,
+    debugShowAllAccounts,
     isStorageAvailable: isStorageAvailable()
   }
 

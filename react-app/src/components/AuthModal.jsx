@@ -25,11 +25,12 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
       setDebugInfo('This usually happens in private browsing mode or when cookies are disabled.')
     }
     
-    // Show quick login option for Android users having issues
-    const isAndroid = /Android/i.test(navigator.userAgent)
-    if (isAndroid) {
-      setShowQuickLogin(true)
-    }
+    // DO NOT automatically show quick login for Android
+    // This was causing users to accidentally create test accounts
+    // const isAndroid = /Android/i.test(navigator.userAgent)
+    // if (isAndroid) {
+    //   setShowQuickLogin(true)
+    // }
   }, [isStorageAvailable])
 
   const handleGuestLogin = async () => {
@@ -123,6 +124,15 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
         setDebugInfo('Double-check your email and password. Make sure caps lock is off.')
       } else if (err.message.includes('localStorage')) {
         setDebugInfo('Your browser storage may be full or disabled. Try clearing browser data.')
+      } else if (err.message.includes('Invalid email or password')) {
+        // Only show Quick Login as last resort after failed login
+        const isAndroid = /Android/i.test(navigator.userAgent)
+        if (isAndroid) {
+          setShowQuickLogin(true)
+          setDebugInfo('Double-check your email and password. If you keep having issues, try the "Emergency Login" button below as a last resort.')
+        } else {
+          setDebugInfo('Double-check your email and password. Make sure caps lock is off.')
+        }
       }
     } finally {
       setLoading(false)
@@ -297,20 +307,20 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
             )}
           </button>
 
-          {/* Quick Login for Android users having trouble */}
+          {/* Emergency Login for Android users having trouble - ONLY show after failed login */}
           {showQuickLogin && !isSignupMode && (
             <>
-              <div className="text-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                <strong>Android users:</strong> If normal login fails, try Quick Login below. 
-                It automatically creates/accesses your account.
+              <div className="text-center text-sm text-yellow-800 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                ⚠️ <strong>Emergency Login:</strong> Only use this if normal login keeps failing. 
+                This may create a new account instead of using your existing one.
               </div>
               <button
                 type="button"
                 onClick={handleQuickLogin}
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !formData.email || !formData.password}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 px-4 rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating...' : '⚡ Quick Login (Android Fix)'}
+                {loading ? 'Creating...' : '⚡ Emergency Login (Last Resort)'}
               </button>
             </>
           )}
