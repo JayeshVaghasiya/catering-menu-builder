@@ -328,8 +328,12 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
           
           document.body.appendChild(tempMenuDiv)
           
-          // Add new page for each page (except the very first one after branding)
-          if (i > 0 || chunkIndex > 0) {
+          // Add new page for menu content (always add a page after branding, and for subsequent pages)
+          if (i === 0 && chunkIndex === 0) {
+            // First meal page after branding - always add a new page
+            pdf.addPage()
+          } else if (i > 0 || chunkIndex > 0) {
+            // Subsequent meal types or chunk pages
             pdf.addPage()
           }
           
