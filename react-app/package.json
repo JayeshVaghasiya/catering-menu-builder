@@ -1,0 +1,26 @@
+{
+  "name": "catering-menu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "postinstall": "node scripts/download-images.js || true"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "autoprefixer": "^10.4.13",
+    "node-fetch": "^2.6.7",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.4.3",
+    "vite": "^4.5.14"
+  },
+  "type": "module"
+}

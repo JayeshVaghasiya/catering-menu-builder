@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Static Catering Menu</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Catering Menu - Static</h1>
+    <div>
+      <label>Business Name: <input id="biz" value="My Catering"></label>
+    </div>
+    <div>
+      <label>Meal Type: <select id="meal"><option>Lunch</option><option>Breakfast</option><option>Dinner</option></select></label>
+    </div>
+    <div id="categories"></div>
+    <button id="addCat">Add Category</button>
+    <button id="export">Export 2-page PDF</button>
+  </div>
+  <div id="brandingPreview" style="width:794px;height:1122px;display:none"></div>
+  <div id="menuPreview" style="width:794px;min-height:1122px;display:none"></div>
+<script src="script.js"></script>
+</body>
+</html>

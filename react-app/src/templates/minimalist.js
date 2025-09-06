@@ -1,0 +1,1 @@
+export default { id: 'minimalist', name: 'Minimalist' }
