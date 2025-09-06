@@ -1,38 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import AuthModal from './components/AuthModal'
+import MenuDashboard from './components/MenuDashboard'
 import BrandingEditor from './components/BrandingEditor'
 import MenuEditor from './components/MenuEditor'
 import Preview from './components/Preview'
 import TemplateGallery from './components/TemplateGallery'
 import sampleGanapati from './assets/sample-ganapati.jpg'
 
-const DEFAULT = {
-  businessName: 'Your Business Name',
-  tagline: 'Tasty catering & events',
-  contact: 'Phone / Email / Address',
-  logoDataUrl: null,
-  ganapatiDataUrl: null,
-}
+function MenuCreator({ editingMenu = null, onSave, onCancel }) {
+  const { currentUser, saveMenu, updateMenu } = useAuth()
+  
+  // Initialize with user's saved brand info or defaults
+  const getInitialBrand = () => {
+    if (editingMenu?.brand) return editingMenu.brand
+    
+    if (currentUser) {
+      return {
+        businessName: currentUser.businessName || 'Your Business Name',
+        tagline: currentUser.tagline || 'Tasty catering & events',
+        contact: `${currentUser.phone || 'Phone'} / ${currentUser.email} / ${currentUser.address || 'Address'}`,
+        logoDataUrl: currentUser.logoDataUrl || null,
+        ganapatiDataUrl: currentUser.ganapatiDataUrl || sampleGanapati,
+      }
+    }
+    
+    return {
+      businessName: 'Your Business Name',
+      tagline: 'Tasty catering & events',
+      contact: 'Phone / Email / Address',
+      logoDataUrl: null,
+      ganapatiDataUrl: sampleGanapati,
+    }
+  }
 
-function App() {
-  const [brand, setBrand] = useState(() => {
-    const s = localStorage.getItem('catering_brand')
-    return s ? JSON.parse(s) : { ...DEFAULT, ganapatiDataUrl: sampleGanapati }
-  })
-  const [mealType, setMealType] = useState('Lunch')
-  const [categories, setCategories] = useState(() => {
-    const s = localStorage.getItem('catering_categories')
-    return s ? JSON.parse(s) : [{ id: Date.now(), name: 'Starters', dishes: ['Paneer Tikka', 'Hara Bhara Kebab'] }]
-  })
-  const [template, setTemplate] = useState('festival')
+  const [brand, setBrand] = useState(getInitialBrand)
+  const [mealType, setMealType] = useState(editingMenu?.mealType || 'Lunch')
+  const [categories, setCategories] = useState(editingMenu?.categories || [
+    { id: Date.now(), name: 'Starters', dishes: ['Paneer Tikka', 'Hara Bhara Kebab'] }
+  ])
+  const [template, setTemplate] = useState(editingMenu?.template || 'festival')
+  const [isSaving, setIsSaving] = useState(false)
   const previewRef = useRef(null)
-
-  useEffect(() => {
-    localStorage.setItem('catering_brand', JSON.stringify(brand))
-  }, [brand])
-
-  useEffect(() => {
-    localStorage.setItem('catering_categories', JSON.stringify(categories))
-  }, [categories])
 
   function updateBrand(patch) {
     setBrand(b => ({ ...b, ...patch }))
@@ -62,6 +71,7 @@ function App() {
   }
 
   function importJSON(file) {
+    if (!file) return
     const reader = new FileReader()
     reader.onload = e => {
       try {
@@ -70,7 +80,7 @@ function App() {
         if (data.categories) setCategories(data.categories)
         if (data.mealType) setMealType(data.mealType)
         if (data.template) setTemplate(data.template)
-        alert('Menu imported')
+        alert('Menu imported successfully!')
       } catch (err) {
         alert('Invalid JSON file')
       }
@@ -78,35 +88,284 @@ function App() {
     reader.readAsText(file)
   }
 
+  const handleSaveMenu = async () => {
+    setIsSaving(true)
+    try {
+      const menuData = { brand, mealType, categories, template }
+      
+      if (editingMenu) {
+        updateMenu(editingMenu.id, menuData)
+      } else {
+        saveMenu(menuData)
+      }
+      
+      onSave?.()
+    } catch (error) {
+      alert('Error saving menu: ' + error.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
-    <div className="p-6 min-h-screen">
-      <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-6">
-        <div className="md:col-span-1">
-          <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
-          <div className="mt-4 bg-white p-3 rounded shadow">
-            <h3 className="font-semibold mb-2">Save / Load</h3>
-            <div className="flex gap-2">
-              <button onClick={exportJSON} className="px-3 py-2 bg-blue-600 text-white rounded">Export JSON</button>
-              <label className="px-3 py-2 bg-gray-200 rounded cursor-pointer">
-                Import JSON
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Mobile-Responsive Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-pink-500 rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">🍽️</span>
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    {editingMenu ? 'Edit Menu' : 'Create Menu'}
+                  </h1>
+                  <p className="text-sm text-gray-600 hidden sm:block">Design beautiful catering menus</p>
+                </div>
+              </div>
+              
+              {/* Mobile Cancel Button */}
+              <button 
+                onClick={onCancel}
+                className="lg:hidden px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                ←
+              </button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+              <button
+                onClick={handleSaveMenu}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💾</span>
+                    <span>{editingMenu ? 'Update Menu' : 'Save Menu'}</span>
+                  </>
+                )}
+              </button>
+              
+              <button 
+                onClick={exportJSON} 
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
+              >
+                <span>📥</span>
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              
+              <label className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2 shadow-lg">
+                <span>📤</span>
+                <span className="hidden sm:inline">Import</span>
                 <input type="file" accept="application/json" onChange={e=>importJSON(e.target.files[0])} className="hidden" />
               </label>
+              
+              <button 
+                onClick={onCancel}
+                className="hidden lg:block px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 flex items-center space-x-2 shadow-lg"
+              >
+                <span>←</span>
+                <span>Back to Dashboard</span>
+              </button>
             </div>
           </div>
+        </div>
+      </div>
 
+      {/* Mobile-Responsive Layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-20">
+        {/* Mobile: Stacked Layout */}
+        <div className="lg:hidden space-y-6">
+          <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
           <TemplateGallery setTemplate={setTemplate} />
+          <MenuEditor 
+            mealType={mealType} 
+            setMealType={setMealType} 
+            categories={categories} 
+            setCategories={setCategories} 
+            addCategory={addCategory} 
+            updateCategory={updateCategory} 
+            removeCategory={removeCategory} 
+          />
+          {/* Mobile Preview at Bottom */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+              <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+                <span>👁️</span>
+                <span>Live Preview</span>
+              </h3>
+            </div>
+            <div className="p-4 overflow-x-auto">
+              <Preview 
+                ref={previewRef} 
+                brand={brand} 
+                mealType={mealType} 
+                categories={categories} 
+                template={template} 
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="md:col-span-2">
-          <MenuEditor mealType={mealType} setMealType={setMealType} categories={categories} setCategories={setCategories}
-            addCategory={addCategory} updateCategory={updateCategory} removeCategory={removeCategory} />
+        {/* Mobile Floating Export Button */}
+        <div className="lg:hidden fixed bottom-6 right-6 z-20">
+          <button
+            onClick={() => previewRef.current?.exportPdf()}
+            className="w-14 h-14 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-2xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center"
+          >
+            <span className="text-xl">📄</span>
+          </button>
         </div>
 
-        <div className="md:col-span-1">
-          <Preview ref={previewRef} brand={brand} mealType={mealType} categories={categories} template={template} />
+        {/* Desktop: Grid Layout */}
+        <div className="hidden lg:grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-1 space-y-6">
+            <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
+            <TemplateGallery setTemplate={setTemplate} />
+          </div>
+
+          <div className="lg:col-span-2">
+            <MenuEditor 
+              mealType={mealType} 
+              setMealType={setMealType} 
+              categories={categories} 
+              setCategories={setCategories} 
+              addCategory={addCategory} 
+              updateCategory={updateCategory} 
+              removeCategory={removeCategory} 
+            />
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+                    <span>👁️</span>
+                    <span>Live Preview</span>
+                  </h3>
+                </div>
+                <div className="p-4">
+                  <Preview 
+                    ref={previewRef} 
+                    brand={brand} 
+                    mealType={mealType} 
+                    categories={categories} 
+                    template={template} 
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  )
+}
+
+function AppContent() {
+  const { currentUser } = useAuth()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState('login') // 'login' or 'signup'
+  const [currentView, setCurrentView] = useState('dashboard') // 'dashboard' or 'creator'
+  const [editingMenu, setEditingMenu] = useState(null)
+
+  // Show auth modal if no user is logged in
+  useEffect(() => {
+    if (!currentUser) {
+      setShowAuthModal(true)
+    } else {
+      setShowAuthModal(false)
+      setCurrentView('dashboard')
+    }
+  }, [currentUser])
+
+  const handleCreateNew = () => {
+    setEditingMenu(null)
+    setCurrentView('creator')
+  }
+
+  const handleEditMenu = (menu) => {
+    setEditingMenu(menu)
+    setCurrentView('creator')
+  }
+
+  const handleSaveMenu = () => {
+    setCurrentView('dashboard')
+    setEditingMenu(null)
+  }
+
+  const handleCancelEdit = () => {
+    setCurrentView('dashboard')
+    setEditingMenu(null)
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="text-8xl mb-6">🍽️</div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Menu Creator</h1>
+          <p className="text-xl text-gray-600 mb-8">Design beautiful catering menus for your business</p>
+          <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
+            <button
+              onClick={() => { setAuthMode('signup'); setShowAuthModal(true) }}
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg font-medium"
+            >
+              <span>🚀</span>
+              <span>Get Started</span>
+            </button>
+            <button
+              onClick={() => { setAuthMode('login'); setShowAuthModal(true) }}
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg font-medium"
+            >
+              <span>🔓</span>
+              <span>Sign In</span>
+            </button>
+          </div>
+        </div>
+
+        {showAuthModal && (
+          <AuthModal
+            isSignup={authMode === 'signup'}
+            onClose={() => setShowAuthModal(false)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (currentView === 'creator') {
+    return (
+      <MenuCreator
+        editingMenu={editingMenu}
+        onSave={handleSaveMenu}
+        onCancel={handleCancelEdit}
+      />
+    )
+  }
+
+  return (
+    <MenuDashboard
+      onCreateNew={handleCreateNew}
+      onEditMenu={handleEditMenu}
+    />
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 
