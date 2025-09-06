@@ -88,7 +88,7 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
         { id: Date.now() + 1, name: 'New Category', dishes: ['New Dish'] }
       ]
     }
-    setMealTypes(prev => [...prev, newMealType])
+    setMealTypes(prev => [newMealType, ...prev]) // Add to the top instead of bottom
   }
 
   function updateMealType(mealTypeId, updates) {
@@ -106,11 +106,11 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
       mt.id === mealTypeId 
         ? { 
             ...mt, 
-            categories: [...mt.categories, { 
+            categories: [{ // Add new category to the top
               id: Date.now(), 
               name: 'New Category', 
               dishes: ['New Dish'] 
-            }] 
+            }, ...mt.categories] 
           }
         : mt
     ))
@@ -140,41 +140,7 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
     ))
   }
 
-  function exportJSON() {
-    const data = { brand, mealTypes, template }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = (brand.businessName || 'menu') + '.menu.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  function importJSON(file) {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = e => {
-      try {
-        const data = JSON.parse(e.target.result)
-        if (data.brand) setBrand(data.brand)
-        if (data.mealTypes) setMealTypes(data.mealTypes)
-        if (data.template) setTemplate(data.template)
-        // Legacy support for old format
-        if (data.categories && data.mealType) {
-          setMealTypes([{
-            id: Date.now(),
-            name: data.mealType,
-            categories: data.categories
-          }])
-        }
-        alert('Menu imported successfully!')
-      } catch (err) {
-        alert('Invalid JSON file')
-      }
-    }
-    reader.readAsText(file)
-  }
+  // Remove unused exportJSON and importJSON functions since buttons are removed
 
   const handleSaveMenu = async () => {
     setIsSaving(true)
@@ -242,20 +208,6 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
                   </>
                 )}
               </button>
-              
-              <button 
-                onClick={exportJSON} 
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
-              >
-                <span>📥</span>
-                <span className="hidden sm:inline">Export</span>
-              </button>
-              
-              <label className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2 shadow-lg">
-                <span>📤</span>
-                <span className="hidden sm:inline">Import</span>
-                <input type="file" accept="application/json" onChange={e=>importJSON(e.target.files[0])} className="hidden" />
-              </label>
               
               <button 
                 onClick={clearStorage}

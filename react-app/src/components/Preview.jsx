@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useRef } from 'react'
+import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
@@ -8,6 +8,7 @@ const A4_HEIGHT_PT = 841.89
 export default forwardRef(function Preview({ brand, mealTypes, template }, ref) {
   const brandingRef = useRef(null)
   const menuRefs = useRef([])
+  const [isExporting, setIsExporting] = useState(false)
 
   // Component body starts here
   console.log('Preview component - brand data:', brand)
@@ -18,6 +19,9 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
   }))
 
   async function exportPdf() {
+    if (isExporting) return // Prevent multiple clicks
+    
+    setIsExporting(true)
     try {
       const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
       
@@ -442,6 +446,8 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
     } catch (err) {
       console.error(err)
       alert('Export failed: ' + err.message)
+    } finally {
+      setIsExporting(false) // Re-enable button after export completes
     }
   }
 
@@ -498,10 +504,23 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
         </div>
         <button 
           onClick={exportPdf} 
-          className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 flex items-center space-x-2 shadow-lg font-medium"
+          disabled={isExporting}
+          className={`px-6 py-3 bg-gradient-to-r ${isExporting 
+            ? 'from-gray-400 to-gray-500 cursor-not-allowed' 
+            : 'from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+          } text-white rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-lg font-medium disabled:opacity-70`}
         >
-          <span>📄</span>
-          <span>Export PDF</span>
+          {isExporting ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              <span>Generating PDF...</span>
+            </>
+          ) : (
+            <>
+              <span>📄</span>
+              <span>Export PDF</span>
+            </>
+          )}
         </button>
       </div>
 
