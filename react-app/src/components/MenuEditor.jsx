@@ -134,6 +134,35 @@ export default function MenuEditor({
                 </div>
               </div>
               
+              {/* Date and Occasion Fields */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      📅 Date for {mealType.name}
+                    </label>
+                    <input
+                      type="date"
+                      value={mealType.date || ''}
+                      onChange={e => updateMealType(mealType.id, { date: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🎉 Occasion Name
+                    </label>
+                    <input
+                      type="text"
+                      value={mealType.occasion || ''}
+                      onChange={e => updateMealType(mealType.id, { occasion: e.target.value })}
+                      placeholder="e.g., Wedding, Birthday, Corporate Event"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+              
               {/* Categories for this Meal Type */}
               <div className="p-6 space-y-6">
                 {mealType.categories.map((cat, catIndex) => (

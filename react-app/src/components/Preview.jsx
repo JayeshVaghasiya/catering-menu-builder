@@ -185,13 +185,24 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                          text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                 ${mealType.name} Menu
               </h2>
+              ${mealType.occasion ? `
+                <p style="font-size: 24px; color: white; margin: 8px 0; 
+                           text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                  🎉 ${mealType.occasion}
+                </p>
+              ` : ''}
               <p style="font-size: 20px; color: white; margin: 10px 0; 
                          text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
                 ${brand.businessName || 'Your Business Name'}
               </p>
               <div style="width: 100px; height: 2px; background: white; margin: 15px auto; border-radius: 1px;"></div>
               <p style="font-size: 14px; color: rgba(255,255,255,0.9);">
-                ${new Date().toLocaleDateString('en-US', { 
+                ${mealType.date ? `📅 ${new Date(mealType.date).toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}` : new Date().toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   year: 'numeric', 
                   month: 'long', 
@@ -269,6 +280,87 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
         pdf.addImage(mData, 'PNG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
         
         document.body.removeChild(tempMenuDiv)
+      }
+
+      // Add Special Notes Page if there are special notes
+      if (brand.specialNotes && brand.specialNotes.trim()) {
+        pdf.addPage()
+        
+        const tempNotesDiv = document.createElement('div')
+        tempNotesDiv.style.width = A4_WIDTH_PT + 'px'
+        tempNotesDiv.style.height = A4_HEIGHT_PT + 'px'
+        tempNotesDiv.style.background = 'linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%)'
+        tempNotesDiv.style.position = 'absolute'
+        tempNotesDiv.style.left = '-9999px'
+        
+        // Create special notes content
+        tempNotesDiv.innerHTML = `
+          <div style="padding: 60px; min-height: 100vh; display: flex; flex-direction: column;">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 50px;">
+              <h2 style="color: ${colors.headerColor}; font-size: 36px; font-weight: bold; margin: 0 0 20px 0;">
+                📝 Special Notes & Terms
+              </h2>
+              <p style="color: ${colors.categoryColor}; font-size: 20px; margin: 0;">
+                ${brand.businessName || 'Your Business Name'}
+              </p>
+              <div style="width: 120px; height: 3px; background: linear-gradient(135deg, ${colors.headerColor}, #FB923C); 
+                          margin: 20px auto; border-radius: 2px;"></div>
+            </div>
+            
+            <!-- Special Notes with Beautiful Bullet Points -->
+            <div style="background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%); 
+                        border-radius: 20px; padding: 40px; flex: 1; 
+                        border: 3px solid #FB923C; box-shadow: 0 15px 35px rgba(0,0,0,0.1);">
+              <div style="display: flex; flex-direction: column; gap: 15px;">
+                ${brand.specialNotes.split('\n')
+                  .filter(line => line.trim())
+                  .map(line => {
+                    const cleanContent = line.trim().replace(/^[●•\-]\s*/, '').trim()
+                    if (cleanContent) {
+                      return `
+                        <div style="background: rgba(255,255,255,0.8); border-radius: 12px; padding: 20px; 
+                                    border-left: 5px solid #FB923C; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                    display: flex; align-items: flex-start; gap: 15px;">
+                          <span style="color: #EA580C; font-size: 24px; font-weight: bold; 
+                                       margin-top: 2px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">🔸</span>
+                          <div style="flex: 1;">
+                            <span style="color: ${colors.textColor}; font-size: 18px; line-height: 1.6; 
+                                         font-weight: 500; text-align: left;">
+                              ${cleanContent}
+                            </span>
+                          </div>
+                        </div>
+                      `
+                    }
+                    return ''
+                  })
+                  .join('')}
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="text-align: center; margin-top: 40px;">
+              <div style="display: inline-flex; align-items: center; gap: 10px;">
+                <div style="width: 40px; height: 2px; background: linear-gradient(to right, transparent, #FB923C);"></div>
+                <span style="font-size: 20px;">⭐</span>
+                <span style="color: ${colors.categoryColor}; font-size: 16px; font-weight: 600;">
+                  Thank you for choosing ${brand.businessName || 'us'}
+                </span>
+                <span style="font-size: 20px;">⭐</span>
+                <div style="width: 40px; height: 2px; background: linear-gradient(to left, transparent, #FB923C);"></div>
+              </div>
+            </div>
+          </div>
+        `
+        
+        document.body.appendChild(tempNotesDiv)
+        
+        const notesCanvas = await html2canvas(tempNotesDiv, { scale: 2 })
+        const notesData = notesCanvas.toDataURL('image/png')
+        pdf.addImage(notesData, 'PNG', 0, 0, A4_WIDTH_PT, A4_HEIGHT_PT)
+        
+        document.body.removeChild(tempNotesDiv)
       }
 
       pdf.save((brand.businessName || 'menu') + '.pdf')
@@ -508,18 +600,34 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                   <h2 className="text-4xl font-bold mb-3 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
                     {mealType.name} Menu
                   </h2>
+                  {mealType.occasion && (
+                    <p className="text-2xl text-white mb-2" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
+                      🎉 {mealType.occasion}
+                    </p>
+                  )}
                   <p className="text-xl text-white mb-3" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
                     {brand.businessName || 'Your Business Name'}
                   </p>
                   <div className="w-24 h-0.5 bg-white mx-auto rounded mb-3"></div>
-                  <p className="text-sm text-white opacity-90">
-                    {new Date().toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </p>
+                  {mealType.date ? (
+                    <p className="text-sm text-white opacity-90">
+                      📅 {new Date(mealType.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-white opacity-90">
+                      {new Date().toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
+                  )}
                 </div>
 
                 {/* Clean Menu Categories */}
@@ -590,6 +698,74 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
             </div>
           </div>
         ))}
+
+        {/* Special Notes Page Preview */}
+        {brand.specialNotes && brand.specialNotes.trim() && (
+          <div className="bg-gray-100 p-6 rounded-xl">
+            <h4 className="text-sm font-medium text-gray-700 mb-4 flex items-center space-x-2">
+              <span>📝</span>
+              <span>Page {mealTypes.length + 2}: Special Notes & Terms</span>
+            </h4>
+            <div className="flex justify-center">
+              <div 
+                className="shadow-lg rounded-lg overflow-hidden"
+                style={{ 
+                  width: '600px', 
+                  minHeight: '800px',
+                  background: 'linear-gradient(135deg, #FEFEFE 0%, #F8F9FA 100%)',
+                  transformOrigin: 'top center'
+                }}
+              >
+                {/* Header */}
+                <div className="text-center p-12">
+                  <h2 className="text-4xl font-bold mb-5" style={{ color: colors.headerColor }}>
+                    📝 Special Notes & Terms
+                  </h2>
+                  <p className="text-xl mb-5" style={{ color: colors.categoryColor }}>
+                    {brand.businessName || 'Your Business Name'}
+                  </p>
+                  <div className="w-24 h-1 mx-auto rounded" style={{ background: `linear-gradient(135deg, ${colors.headerColor}, #FB923C)` }}></div>
+                </div>
+                
+                {/* Special Notes */}
+                <div className="px-10 pb-10">
+                  <div className="bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200 rounded-2xl p-8 border-2 border-orange-300 shadow-xl">
+                    <div className="space-y-4">
+                      {brand.specialNotes.split('\n').filter(line => line.trim()).map((line, index) => {
+                        const cleanContent = line.trim().replace(/^[●•\-]\s*/, '').trim()
+                        
+                        if (cleanContent) {
+                          return (
+                            <div key={index} className="bg-white/80 rounded-xl p-5 border-l-4 border-orange-500 shadow-md flex items-start gap-4">
+                              <span className="text-orange-600 text-xl font-bold mt-1">🔸</span>
+                              <span className="text-gray-700 text-lg leading-relaxed font-medium flex-1">
+                                {cleanContent}
+                              </span>
+                            </div>
+                          )
+                        }
+                        return null
+                      })}
+                    </div>
+                    
+                    {/* Footer */}
+                    <div className="mt-8 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="w-10 h-0.5 bg-gradient-to-r from-transparent to-orange-500"></div>
+                        <span className="text-xl">⭐</span>
+                        <span className="text-orange-700 text-base font-semibold">
+                          Thank you for choosing {brand.businessName || 'us'}
+                        </span>
+                        <span className="text-xl">⭐</span>
+                        <div className="w-10 h-0.5 bg-gradient-to-l from-transparent to-orange-500"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {mealTypes.length === 0 && (
           <div className="bg-gray-100 p-4 rounded-xl">

@@ -14,10 +14,11 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
   // Initialize with user's saved brand info or defaults
   const getInitialBrand = () => {
     if (editingMenu?.brand) {
-      // Ensure backward compatibility - add services field if it doesn't exist
+      // Ensure backward compatibility - add services and specialNotes fields if they don't exist
       return {
         ...editingMenu.brand,
-        services: editingMenu.brand.services || ''
+        services: editingMenu.brand.services || '',
+        specialNotes: editingMenu.brand.specialNotes || ''
       }
     }
     
@@ -27,6 +28,7 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
         tagline: currentUser.tagline || 'Tasty catering & events',
         contact: `${currentUser.phone || 'Phone'} / ${currentUser.email} / ${currentUser.address || 'Address'}`,
         services: currentUser.services || '',
+        specialNotes: currentUser.specialNotes || '',
         logoDataUrl: currentUser.logoDataUrl || null,
         ganapatiDataUrl: currentUser.ganapatiDataUrl || sampleGanapati,
       }
@@ -37,6 +39,7 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
       tagline: 'Tasty catering & events',
       contact: 'Phone / Email / Address',
       services: '',
+      specialNotes: '',
       logoDataUrl: null,
       ganapatiDataUrl: sampleGanapati,
     }
@@ -70,6 +73,8 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
     const newMealType = {
       id: Date.now(),
       name: 'Breakfast', // Default to first available
+      date: '', // Date for this meal type
+      occasion: '', // Occasion name for this meal type
       categories: [
         { id: Date.now() + 1, name: 'New Category', dishes: ['New Dish'] }
       ]

@@ -122,6 +122,27 @@ Examples:
             />
             <p className="text-xs text-gray-500 mt-1">Tip: You can resize this text box by dragging the bottom-right corner</p>
           </div>
+          
+          {/* Special Notes Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📝 Special Notes & Terms (for last page)
+            </label>
+            <textarea
+              value={brand.specialNotes || ''}
+              onChange={e => updateBrand({ specialNotes: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-y"
+              rows={4}
+              placeholder="Enter special terms and conditions, notes, or instructions. Each line will become a bullet point on the last page.
+
+Example:
+• 50% advance payment required
+• Delivery charges may apply
+• Menu items subject to availability
+• Minimum order quantity: 10 people"
+            />
+            <p className="text-xs text-gray-500 mt-1">Each new line will appear as a bullet point on the last page of your menu</p>
+          </div>
         </div>        {/* Images Section */}
         <div className="border-t border-gray-200 pt-6 space-y-4">
           <div>
