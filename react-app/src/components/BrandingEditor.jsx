@@ -1,9 +1,38 @@
 import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import IsolatedTextarea from './IsolatedTextarea'
 import sampleGanapati from '../assets/sample-ganapati.jpg'
 
 export default function BrandingEditor({ brand, updateBrand, setTemplate, template }) {
   const { updateUserProfile } = useAuth()
+  
+  function handleBrandUpdate(updates) {
+    console.log('Brand update called with:', updates) // Debug log
+    updateBrand(updates)
+    
+    // Also update user profile for services field
+    if ('services' in updates) {
+      console.log('Updating user profile with services:', updates.services) // Debug log
+      updateUserProfile({ services: updates.services })
+    }
+  }
+
+  // Comprehensive event handler to prevent navigation on text operations
+  function handleTextEvents(e) {
+    // Stop all propagation to prevent parent handlers
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+    
+    // Prevent default for potentially problematic keys
+    if (e.type === 'keydown') {
+      // Don't prevent normal typing, but prevent navigation shortcuts
+      if (e.ctrlKey || e.altKey || e.metaKey) {
+        if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Tab') {
+          e.preventDefault()
+        }
+      }
+    }
+  }
   
   function handleImage(field, file) {
     if (!file) return
@@ -44,7 +73,14 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+    <div 
+      className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+      onSubmit={e => {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }}
+    >
       <div className="bg-gradient-to-r from-orange-500 to-pink-500 px-6 py-4">
         <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
           <span>🏪</span>
@@ -52,7 +88,21 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
         </h3>
       </div>
       
-      <div className="p-6 space-y-6">
+      <div 
+        className="p-6 space-y-6"
+        onSubmit={e => {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault()
+            e.stopPropagation()
+            return false
+          }
+        }}
+      >
         {/* Business Info Section */}
         <div className="space-y-4">
           <div>
@@ -60,6 +110,14 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
             <input 
               value={brand.businessName} 
               onChange={e=>updateBrand({ businessName: e.target.value })} 
+              onKeyDown={handleTextEvents}
+              onKeyUp={handleTextEvents}
+              onKeyPress={handleTextEvents}
+              onInput={handleTextEvents}
+              onCopy={handleTextEvents}
+              onCut={handleTextEvents}
+              onPaste={handleTextEvents}
+              onSelect={handleTextEvents}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               placeholder="Enter your business name"
             />
@@ -70,6 +128,14 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
             <input 
               value={brand.tagline} 
               onChange={e=>updateBrand({ tagline: e.target.value })} 
+              onKeyDown={handleTextEvents}
+              onKeyUp={handleTextEvents}
+              onKeyPress={handleTextEvents}
+              onInput={handleTextEvents}
+              onCopy={handleTextEvents}
+              onCut={handleTextEvents}
+              onPaste={handleTextEvents}
+              onSelect={handleTextEvents}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
               placeholder="Your catchy tagline"
             />
@@ -80,10 +146,38 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
             <textarea 
               value={brand.contact} 
               onChange={e=>updateBrand({ contact: e.target.value })} 
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
+              onKeyDown={handleTextEvents}
+              onKeyUp={handleTextEvents}
+              onKeyPress={handleTextEvents}
+              onInput={handleTextEvents}
+              onCopy={handleTextEvents}
+              onCut={handleTextEvents}
+              onPaste={handleTextEvents}
+              onSelect={handleTextEvents}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
               rows="3"
               placeholder="Phone / Email / Address"
             />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Services Offered</label>
+            <IsolatedTextarea
+              value={brand.services || ''}
+              onChange={(value) => handleBrandUpdate({ services: value })}
+              rows={6}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+              placeholder="Describe your catering services in detail... 
+
+Examples:
+• Wedding Catering & Event Management
+• Corporate Lunch & Dinner Services  
+• Birthday Party Catering
+• Festival & Religious Event Catering
+• Home Party Catering
+• Tiffin & Meal Delivery Services"
+            />
+            <p className="text-xs text-gray-500 mt-1">Tip: You can resize this text box by dragging the bottom-right corner</p>
           </div>
         </div>
 

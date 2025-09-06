@@ -115,27 +115,46 @@ export default function MenuDashboard({ onCreateNew, onEditMenu }) {
                       {menu.brand?.businessName || 'Untitled Menu'}
                     </h3>
                     <p className="text-indigo-100 text-sm">
-                      {menu.mealType || 'Lunch'} Menu
+                      {menu.mealTypes?.map(mt => mt.name).join(', ') || menu.mealType || 'Menu'}
                     </p>
                   </div>
                   
                   <div className="p-4 space-y-4">
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Categories:</span> {menu.categories?.length || 0}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Template:</span> {menu.template || 'Festival'}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Created: {formatDate(menu.createdAt)}
-                      </p>
-                      {menu.updatedAt && menu.updatedAt !== menu.createdAt && (
-                        <p className="text-xs text-gray-500">
-                          Updated: {formatDate(menu.updatedAt)}
-                        </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Meal Types:</span> {
+                        menu.mealTypes?.length || (menu.mealType ? 1 : 0)
+                      }
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Total Categories:</span> {
+                        menu.mealTypes?.reduce((total, mt) => total + (mt.categories?.length || 0), 0) || 
+                        menu.categories?.length || 0
+                      }
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Template:</span> {menu.template || 'Festival'}
+                    </p>
+                    <div className="text-xs text-gray-500 mt-2">
+                      {menu.mealTypes?.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {menu.mealTypes.map((mt, index) => (
+                            <span key={index} className="bg-gray-100 px-2 py-1 rounded text-xs">
+                              {mt.name}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
+                    <p className="text-xs text-gray-500">
+                      Created: {formatDate(menu.createdAt)}
+                    </p>
+                    {menu.updatedAt && menu.updatedAt !== menu.createdAt && (
+                      <p className="text-xs text-gray-500">
+                        Updated: {formatDate(menu.updatedAt)}
+                      </p>
+                    )}
+                  </div>
 
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                       <button

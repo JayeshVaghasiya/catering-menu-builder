@@ -20,6 +20,7 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
         businessName: currentUser.businessName || 'Your Business Name',
         tagline: currentUser.tagline || 'Tasty catering & events',
         contact: `${currentUser.phone || 'Phone'} / ${currentUser.email} / ${currentUser.address || 'Address'}`,
+        services: currentUser.services || '',
         logoDataUrl: currentUser.logoDataUrl || null,
         ganapatiDataUrl: currentUser.ganapatiDataUrl || sampleGanapati,
       }
@@ -29,15 +30,21 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
       businessName: 'Your Business Name',
       tagline: 'Tasty catering & events',
       contact: 'Phone / Email / Address',
+      services: '',
       logoDataUrl: null,
       ganapatiDataUrl: sampleGanapati,
     }
   }
 
   const [brand, setBrand] = useState(getInitialBrand)
-  const [mealType, setMealType] = useState(editingMenu?.mealType || 'Lunch')
-  const [categories, setCategories] = useState(editingMenu?.categories || [
-    { id: Date.now(), name: 'Starters', dishes: ['Paneer Tikka', 'Hara Bhara Kebab'] }
+  const [mealTypes, setMealTypes] = useState(editingMenu?.mealTypes || [
+    {
+      id: Date.now(),
+      name: 'Lunch',
+      categories: [
+        { id: Date.now() + 1, name: 'Starters', dishes: ['Paneer Tikka', 'Hara Bhara Kebab'] }
+      ]
+    }
   ])
   const [template, setTemplate] = useState(editingMenu?.template || 'festival')
   const [isSaving, setIsSaving] = useState(false)
@@ -47,20 +54,68 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
     setBrand(b => ({ ...b, ...patch }))
   }
 
-  function addCategory() {
-    setCategories(c => [...c, { id: Date.now(), name: 'New Category', dishes: ['New Dish'] }])
+  function addMealType() {
+    const newMealType = {
+      id: Date.now(),
+      name: 'Breakfast', // Default to first available
+      categories: [
+        { id: Date.now() + 1, name: 'New Category', dishes: ['New Dish'] }
+      ]
+    }
+    setMealTypes(prev => [...prev, newMealType])
   }
 
-  function updateCategory(id, patch) {
-    setCategories(c => c.map(cat => cat.id === id ? { ...cat, ...patch } : cat))
+  function updateMealType(mealTypeId, updates) {
+    setMealTypes(prev => prev.map(mt => 
+      mt.id === mealTypeId ? { ...mt, ...updates } : mt
+    ))
   }
 
-  function removeCategory(id) {
-    setCategories(c => c.filter(cat => cat.id !== id))
+  function removeMealType(mealTypeId) {
+    setMealTypes(prev => prev.filter(mt => mt.id !== mealTypeId))
+  }
+
+  function addCategory(mealTypeId) {
+    setMealTypes(prev => prev.map(mt => 
+      mt.id === mealTypeId 
+        ? { 
+            ...mt, 
+            categories: [...mt.categories, { 
+              id: Date.now(), 
+              name: 'New Category', 
+              dishes: ['New Dish'] 
+            }] 
+          }
+        : mt
+    ))
+  }
+
+  function updateCategory(mealTypeId, categoryId, patch) {
+    setMealTypes(prev => prev.map(mt => 
+      mt.id === mealTypeId 
+        ? {
+            ...mt,
+            categories: mt.categories.map(cat => 
+              cat.id === categoryId ? { ...cat, ...patch } : cat
+            )
+          }
+        : mt
+    ))
+  }
+
+  function removeCategory(mealTypeId, categoryId) {
+    setMealTypes(prev => prev.map(mt => 
+      mt.id === mealTypeId 
+        ? {
+            ...mt,
+            categories: mt.categories.filter(cat => cat.id !== categoryId)
+          }
+        : mt
+    ))
   }
 
   function exportJSON() {
-    const data = { brand, mealType, categories, template }
+    const data = { brand, mealTypes, template }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -77,9 +132,16 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
       try {
         const data = JSON.parse(e.target.result)
         if (data.brand) setBrand(data.brand)
-        if (data.categories) setCategories(data.categories)
-        if (data.mealType) setMealType(data.mealType)
+        if (data.mealTypes) setMealTypes(data.mealTypes)
         if (data.template) setTemplate(data.template)
+        // Legacy support for old format
+        if (data.categories && data.mealType) {
+          setMealTypes([{
+            id: Date.now(),
+            name: data.mealType,
+            categories: data.categories
+          }])
+        }
         alert('Menu imported successfully!')
       } catch (err) {
         alert('Invalid JSON file')
@@ -91,7 +153,8 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
   const handleSaveMenu = async () => {
     setIsSaving(true)
     try {
-      const menuData = { brand, mealType, categories, template }
+      console.log('Saving menu with brand:', brand) // Debug log
+      const menuData = { brand, mealTypes, template }
       
       if (editingMenu) {
         updateMenu(editingMenu.id, menuData)
@@ -187,13 +250,14 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
           <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
           <TemplateGallery setTemplate={setTemplate} />
           <MenuEditor 
-            mealType={mealType} 
-            setMealType={setMealType} 
-            categories={categories} 
-            setCategories={setCategories} 
-            addCategory={addCategory} 
-            updateCategory={updateCategory} 
-            removeCategory={removeCategory} 
+            mealTypes={mealTypes}
+            setMealTypes={setMealTypes}
+            addMealType={addMealType}
+            updateMealType={updateMealType}
+            removeMealType={removeMealType}
+            addCategory={addCategory}
+            updateCategory={updateCategory}
+            removeCategory={removeCategory}
           />
           {/* Mobile Preview at Bottom */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -207,8 +271,7 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
               <Preview 
                 ref={previewRef} 
                 brand={brand} 
-                mealType={mealType} 
-                categories={categories} 
+                mealTypes={mealTypes} 
                 template={template} 
               />
             </div>
@@ -225,44 +288,44 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
           </button>
         </div>
 
-        {/* Desktop: Grid Layout */}
-        <div className="hidden lg:grid lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1 space-y-6">
-            <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
-            <TemplateGallery setTemplate={setTemplate} />
+        {/* Desktop: Vertical Layout with Preview at Bottom */}
+        <div className="hidden lg:block space-y-8">
+          {/* Top Section: Brand & Menu Editor */}
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 space-y-6">
+              <BrandingEditor brand={brand} updateBrand={updateBrand} setTemplate={setTemplate} template={template} />
+              <TemplateGallery setTemplate={setTemplate} />
+            </div>
+
+            <div className="lg:col-span-2">
+              <MenuEditor 
+                mealTypes={mealTypes}
+                setMealTypes={setMealTypes}
+                addMealType={addMealType}
+                updateMealType={updateMealType}
+                removeMealType={removeMealType}
+                addCategory={addCategory}
+                updateCategory={updateCategory}
+                removeCategory={removeCategory}
+              />
+            </div>
           </div>
 
-          <div className="lg:col-span-2">
-            <MenuEditor 
-              mealType={mealType} 
-              setMealType={setMealType} 
-              categories={categories} 
-              setCategories={setCategories} 
-              addCategory={addCategory} 
-              updateCategory={updateCategory} 
-              removeCategory={removeCategory} 
-            />
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
-                  <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-                    <span>👁️</span>
-                    <span>Live Preview</span>
-                  </h3>
-                </div>
-                <div className="p-4">
-                  <Preview 
-                    ref={previewRef} 
-                    brand={brand} 
-                    mealType={mealType} 
-                    categories={categories} 
-                    template={template} 
-                  />
-                </div>
-              </div>
+          {/* Bottom Section: Full Width Preview */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+              <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+                <span>👁️</span>
+                <span>Live Preview & Export</span>
+              </h3>
+            </div>
+            <div className="p-6">
+              <Preview 
+                ref={previewRef} 
+                brand={brand} 
+                mealTypes={mealTypes} 
+                template={template} 
+              />
             </div>
           </div>
         </div>
