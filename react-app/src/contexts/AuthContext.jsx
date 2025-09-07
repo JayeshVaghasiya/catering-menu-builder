@@ -66,6 +66,18 @@ export function AuthProvider({ children }) {
     const validateSession = () => {
       try {
         const userData = safeGetItem('currentUser')
+        const usersData = safeGetItem('users', '[]')
+        const users = JSON.parse(usersData)
+        
+        // Debug deployment state
+        console.log('🌐 DEPLOYMENT DEBUG:', {
+          domain: window.location.hostname,
+          currentUser: userData ? 'exists' : 'none',
+          totalUsers: users.length,
+          userEmails: users.map(u => u.email),
+          isProduction: window.location.hostname !== 'localhost'
+        })
+        
         if (userData) {
           const user = JSON.parse(userData)
           setCurrentUser(user)
@@ -173,12 +185,23 @@ export function AuthProvider({ children }) {
     try {
       console.log('🚀 QUICK LOGIN ATTEMPT - Enhanced Debug Mode')
       
+      // Prevent quick login on production domains
+      const isProduction = window.location.hostname !== 'localhost' && 
+                          window.location.hostname !== '127.0.0.1' &&
+                          !window.location.hostname.includes('192.168')
+      
+      if (isProduction) {
+        console.log('🚫 QUICK LOGIN BLOCKED: Production environment detected')
+        throw new Error('Quick login not available on production. Please use regular login or signup.')
+      }
+      
       const usersData = safeGetItem('users', '[]')
       const users = JSON.parse(usersData)
       
       console.log('📊 STORAGE STATE:')
       console.log('- Total users in storage:', users.length)
       console.log('- Current user in storage:', safeGetItem('currentUser'))
+      console.log('- Domain:', window.location.hostname)
       
       // Check if there are any real (non-test) accounts
       const realUsers = users.filter(user => {
@@ -203,7 +226,7 @@ export function AuthProvider({ children }) {
         throw new Error('Real accounts exist - please use regular login')
       }
       
-      // Only create test account if no real accounts exist
+      // Only create test account if no real accounts exist AND on development
       console.log('✅ CREATING TEST ACCOUNT: No real accounts found')
       
       const testUser = {
