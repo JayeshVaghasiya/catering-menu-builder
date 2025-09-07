@@ -247,7 +247,18 @@ export function AuthProvider({ children }) {
       }
       
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY IN QUICKLOGIN:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR IN QUICKLOGIN:', parseError, { usersData })
+        users = []
+      }
       
       console.log('📊 STORAGE STATE:')
       console.log('- Total users in storage:', users.length)
@@ -255,13 +266,13 @@ export function AuthProvider({ children }) {
       console.log('- Domain:', window.location.hostname)
       
       // Check if there are any real (non-test) accounts
-      const realUsers = users.filter(user => {
+      const realUsers = Array.isArray(users) ? users.filter(user => {
         const isTest = user.email === 'test@example.com' || 
                       user.id?.startsWith('test-user-') ||
                       user.id?.startsWith('quick-') ||
                       user.businessName?.includes('Test')
         return !isTest
-      })
+      }) : []
       
       console.log('🔍 ACCOUNT ANALYSIS:')
       console.log('- Real accounts found:', realUsers.length)
@@ -269,11 +280,11 @@ export function AuthProvider({ children }) {
       
       if (realUsers.length > 0) {
         console.log('⚠️ PREVENTING QUICK LOGIN: Real accounts exist!')
-        console.log('Real accounts:', realUsers.map(u => ({ 
+        console.log('Real accounts:', Array.isArray(realUsers) ? realUsers.map(u => ({ 
           email: u.email, 
           businessName: u.businessName,
           id: u.id
-        })))
+        })) : 'REAL_USERS_NOT_ARRAY')
         throw new Error('Real accounts exist - please use regular login')
       }
       
@@ -308,14 +319,25 @@ export function AuthProvider({ children }) {
       console.log('🆘 CREATING EMERGENCY TEST ACCOUNT')
       
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY IN CREATE TEST:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR IN CREATE TEST:', parseError, { usersData })
+        users = []
+      }
       
       // Remove any existing test accounts first
-      const filteredUsers = users.filter(user => 
+      const filteredUsers = Array.isArray(users) ? users.filter(user => 
         user.email !== 'test@example.com' && 
         !user.id?.startsWith('test-user-') &&
         !user.id?.startsWith('quick-')
-      )
+      ) : []
       
       const testUser = {
         id: `test-user-${Date.now()}`,
@@ -345,12 +367,23 @@ export function AuthProvider({ children }) {
       console.log('🧹 CLEANING UP TEST ACCOUNTS')
       
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY IN CLEANUP:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR IN CLEANUP:', parseError, { usersData })
+        users = []
+      }
       
       const beforeCount = users.length
       
       // Remove test accounts
-      const cleanUsers = users.filter(user => {
+      const cleanUsers = Array.isArray(users) ? users.filter(user => {
         const isTest = user.email === 'test@example.com' || 
                       user.id?.startsWith('test-user-') ||
                       user.id?.startsWith('quick-') ||
@@ -365,7 +398,7 @@ export function AuthProvider({ children }) {
         }
         
         return !isTest
-      })
+      }) : []
       
       const afterCount = cleanUsers.length
       const removedCount = beforeCount - afterCount
@@ -388,26 +421,41 @@ export function AuthProvider({ children }) {
   const debugShowAllAccounts = () => {
     try {
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY IN DEBUG:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR IN DEBUG:', parseError, { usersData })
+        users = []
+      }
       
       console.log('=== ALL ACCOUNTS DEBUG ===')
       console.log('Total accounts:', users.length)
       
-      users.forEach((user, index) => {
-        const isTest = user.email === 'test@example.com' || 
-                      user.id?.startsWith('test-user-') ||
-                      user.id?.startsWith('quick-') ||
-                      user.businessName?.includes('Test')
-        
-        console.log(`Account ${index + 1}:`, {
-          email: user.email,
-          id: user.id,
-          businessName: user.businessName,
-          password: user.password, // Show password for debugging
-          isTest: isTest ? '⚠️ TEST ACCOUNT' : '✅ REAL ACCOUNT',
-          createdAt: user.createdAt
+      if (Array.isArray(users)) {
+        users.forEach((user, index) => {
+          const isTest = user.email === 'test@example.com' || 
+                        user.id?.startsWith('test-user-') ||
+                        user.id?.startsWith('quick-') ||
+                        user.businessName?.includes('Test')
+          
+          console.log(`Account ${index + 1}:`, {
+            email: user.email,
+            id: user.id,
+            businessName: user.businessName,
+            password: user.password, // Show password for debugging
+            isTest: isTest ? '⚠️ TEST ACCOUNT' : '✅ REAL ACCOUNT',
+            createdAt: user.createdAt
+          })
         })
-      })
+      } else {
+        console.log('⚠️ Users is not an array, cannot display accounts')
+      }
       
       const currentUserData = safeGetItem('currentUser', '{}')
       const currentUser = JSON.parse(currentUserData)
@@ -458,8 +506,20 @@ export function AuthProvider({ children }) {
       
       // Update in users array
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
-      const userIndex = users.findIndex(u => u.id === currentUser.id)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY IN UPDATE PROFILE:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR IN UPDATE PROFILE:', parseError, { usersData })
+        users = []
+      }
+      
+      const userIndex = Array.isArray(users) ? users.findIndex(u => u.id === currentUser.id) : -1
       
       if (userIndex !== -1) {
         users[userIndex] = updatedUser
