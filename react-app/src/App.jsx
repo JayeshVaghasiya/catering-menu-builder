@@ -391,8 +391,10 @@ function AppContent() {
 
         {showAuthModal && (
           <AuthModal
-            isSignup={authMode === 'signup'}
+            isOpen={showAuthModal}
+            type={authMode}
             onClose={() => setShowAuthModal(false)}
+            onToggle={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
           />
         )}
       </div>
