@@ -61,10 +61,76 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Fix corrupted user data structure
+  const fixCorruptedUserData = () => {
+    try {
+      console.log('🔧 FIXING CORRUPTED USER DATA')
+      
+      const usersData = safeGetItem('users', '[]')
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY IN FIX:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR IN FIX:', parseError, { usersData })
+        users = []
+      }
+      
+      let fixedCount = 0
+      const fixedUsers = Array.isArray(users) ? users.map(user => {
+        // Check if email field is an object instead of string
+        if (user.email && typeof user.email === 'object' && user.email.email) {
+          console.log('🔧 Fixing corrupted user data:', {
+            id: user.id,
+            oldEmail: user.email,
+            newEmail: user.email.email
+          })
+          
+          // Extract the correct fields from the nested object
+          const fixedUser = {
+            id: user.id,
+            email: user.email.email, // Extract email string from object
+            password: user.email.password || user.password,
+            businessName: user.email.businessName || user.businessName || '',
+            ownerName: user.email.ownerName || user.ownerName || '',
+            phone: user.email.phone || user.phone || '',
+            address: user.email.address || user.address || '',
+            createdAt: user.createdAt || new Date().toISOString(),
+            menus: user.menus || []
+          }
+          
+          fixedCount++
+          return fixedUser
+        }
+        
+        return user
+      }) : []
+      
+      if (fixedCount > 0) {
+        safeSetItem('users', JSON.stringify(fixedUsers))
+        console.log(`✅ DATA FIX COMPLETE: Fixed ${fixedCount} corrupted user records`)
+      } else {
+        console.log('✅ DATA FIX COMPLETE: No corrupted records found')
+      }
+      
+      return { fixed: fixedCount, total: fixedUsers.length }
+    } catch (error) {
+      console.error('🚨 DATA FIX ERROR:', error)
+      return { error: error.message }
+    }
+  }
+
   // Check session on mount
   useEffect(() => {
     const validateSession = () => {
       try {
+        // Fix any corrupted user data first
+        fixCorruptedUserData()
+        
         const userData = safeGetItem('currentUser')
         const usersData = safeGetItem('users', '[]')
         let users = []
@@ -148,6 +214,9 @@ export function AuthProvider({ children }) {
       
       if (user) {
         console.log('✅ LOGIN SUCCESS:', { email, userId: user.id, businessName: user.businessName })
+        
+        // Fix any corrupted user data first
+        fixCorruptedUserData()
         
         // Clean up any test accounts when real user logs in successfully
         cleanupTestAccounts()
@@ -623,6 +692,7 @@ export function AuthProvider({ children }) {
     validateSession,
     createTestAccount,
     cleanupTestAccounts,
+    fixCorruptedUserData,
     debugShowAllAccounts,
     isStorageAvailable: isStorageAvailable()
   }
