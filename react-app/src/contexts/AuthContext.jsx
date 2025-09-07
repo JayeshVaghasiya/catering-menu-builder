@@ -10,8 +10,8 @@ export const useAuth = () => {
   return context;
 };
 
-// API base URL - update this if your backend runs on a different port
-const API_BASE_URL = 'http://localhost:3001/api';
+// API base URL - uses environment variable or localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);

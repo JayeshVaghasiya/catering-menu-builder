@@ -10,9 +10,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
+// Dynamic CORS configuration based on environment
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? (process.env.PROD_CORS_ORIGIN ? process.env.PROD_CORS_ORIGIN.split(',') : [])
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+
+console.log('CORS enabled for origins:', allowedOrigins);
+
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
