@@ -10,8 +10,10 @@ export const useAuth = () => {
   return context;
 };
 
-// API base URL - uses environment variable or localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// API base URL - uses original backend for development, Vercel API for production
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:3001/api' 
+  : '/api';
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
