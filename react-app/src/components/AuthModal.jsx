@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
-export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
+// Global log storage for mobile debugging
+window.debugLogs = []
+window.addDebugLog = (message, data = {}) => {
+  const timestamp = new Date().toISOString()
+  const logEntry = {
+    timestamp,
+    message,
+    data: JSON.stringify(data, null, 2)
+  }
+  window.debugLogs.push(logEntry)
+  console.log(`[${timestamp}] ${message}`, data)
+  
+  // Keep only last 50 logs to prevent memory issues
+  if (window.debugLogs.length > 50) {
+    window.debugLogs = window.debugLogs.slice(-50)
+  }
+}
+
+const AuthModal = ({ isOpen, onClose, type, onToggle }) => {
   const { login, quickLogin, guestLogin, signup, isStorageAvailable, debugShowAllAccounts } = useAuth()
-  const [isSignupMode, setIsSignupMode] = useState(isSignup)
+  const [isSignupMode, setIsSignupMode] = useState(type === 'signup')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [debugInfo, setDebugInfo] = useState('')
@@ -19,99 +37,7 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     address: ''
   })
 
-  // Check storage availability on component mount
-  useEffect(() => {
-    if (!isStorageAvailable) {
-      setError('Storage not available. Please enable cookies/local storage in your browser settings.')
-      setDebugInfo('This usually happens in private browsing mode or when cookies are disabled.')
-    }
-    
-    // DO NOT automatically show quick login for Android
-    // This was causing users to accidentally create test accounts
-    // const isAndroid = /Android/i.test(navigator.userAgent)
-    // if (isAndroid) {
-    //   setShowQuickLogin(true)
-    // }
-  }, [isStorageAvailable])
-
-  const handleGuestLogin = async () => {
-    setLoading(true)
-    setError('')
-    setDebugInfo('')
-
-    try {
-      console.log('Using guest login...')
-      await guestLogin()
-      console.log('Guest login successful')
-      onClose()
-    } catch (err) {
-      console.error('Guest login error:', err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleQuickLogin = async () => {
-    setLoading(true)
-    setError('')
-    setDebugInfo('')
-
-    try {
-      // Trim inputs for quick login too
-      const trimmedEmail = formData.email.trim()
-      const trimmedPassword = formData.password.trim()
-      
-      if (!trimmedEmail || !trimmedPassword) {
-        throw new Error('Please enter email and password for quick login')
-      }
-      
-      console.log('⚡ QUICK LOGIN ATTEMPT - Sending to auth layer:', {
-        email: trimmedEmail,
-        emailLength: trimmedEmail.length,
-        passwordLength: trimmedPassword.length,
-        timestamp: new Date().toISOString()
-      })
-      
-      const result = await quickLogin(trimmedEmail, trimmedPassword)
-      console.log('✅ QUICK LOGIN SUCCESS RESPONSE:', result)
-      setDebugInfo(`✅ Quick login successful! Welcome ${result.businessName || result.email}`)
-      
-      setTimeout(() => {
-        onClose()
-      }, 1000)
-    } catch (err) {
-      console.error('🚨 QUICK LOGIN ERROR:', {
-        message: err.message,
-        email: formData.email.trim(),
-        timestamp: new Date().toISOString()
-      })
-      
-      setError(err.message)
-      setDebugInfo(`🔍 Quick Login Debug: ${err.message} | Email: "${formData.email.trim()}" | Time: ${new Date().toLocaleTimeString()}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleInputChange = (e) => {
-    // Don't trim during typing - only trim email/password fields to preserve spaces in names
-    const value = e.target.value
-    const fieldName = e.target.name
-    
-    // Only trim email and password fields during typing to prevent leading/trailing spaces
-    // but preserve spaces in business names, owner names, etc.
-    const processedValue = (fieldName === 'email' || fieldName === 'password') 
-      ? value.trim() 
-      : value
-    
-    setFormData({
-      ...formData,
-      [fieldName]: processedValue
-    })
-    setError('')
-    setDebugInfo('')
-  }
+  if (!isOpen) return null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -120,34 +46,28 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     setDebugInfo('')
 
     try {
-      // Trim only email and password to prevent login issues, preserve spaces in names/addresses
       const trimmedData = {
         email: formData.email.trim(),
         password: formData.password.trim(),
-        businessName: formData.businessName.trim(), // Trim only leading/trailing spaces
-        ownerName: formData.ownerName.trim(), // Trim only leading/trailing spaces  
+        businessName: formData.businessName.trim(),
+        ownerName: formData.ownerName.trim(),
         phone: formData.phone.trim(),
         address: formData.address.trim()
       }
 
-      // Mobile-specific debugging
-      console.log('🔍 FORM SUBMISSION DEBUG:', {
+      // Enhanced mobile debugging with global logging
+      window.addDebugLog('🔍 FORM SUBMISSION STARTED', {
         isSignupMode,
-        originalEmail: formData.email,
-        trimmedEmail: trimmedData.email,
-        originalBusinessName: formData.businessName,
-        trimmedBusinessName: trimmedData.businessName,
+        email: trimmedData.email,
         emailLength: trimmedData.email.length,
         passwordLength: trimmedData.password.length,
         userAgent: navigator.userAgent,
-        storageAvailable: isStorageAvailable,
-        timestamp: new Date().toISOString(),
-        // Mobile-specific checks
+        domain: window.location.hostname,
         isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-        emailBytes: new TextEncoder().encode(trimmedData.email).length,
-        passwordBytes: new TextEncoder().encode(trimmedData.password).length,
-        emailCharCodes: Array.from(trimmedData.email).map(c => c.charCodeAt(0)),
-        passwordCharCodes: Array.from(trimmedData.password).map(c => c.charCodeAt(0))
+        localStorage: {
+          users: localStorage.getItem('users'),
+          currentUser: localStorage.getItem('currentUser')
+        }
       })
 
       if (isSignupMode) {
@@ -155,86 +75,62 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
           throw new Error('Please fill in all required fields')
         }
         
-        console.log('📝 SIGNUP ATTEMPT - Sending to auth layer:', {
-          email: trimmedData.email,
-          businessName: trimmedData.businessName,
-          ownerName: trimmedData.ownerName
-        })
-        
+        window.addDebugLog('📝 SIGNUP ATTEMPT', trimmedData)
         const result = await signup(trimmedData)
-        console.log('✅ SIGNUP SUCCESS RESPONSE:', result)
+        window.addDebugLog('✅ SIGNUP SUCCESS', result)
         setDebugInfo(`✅ Account created successfully! Welcome ${result.businessName}`)
       } else {
         if (!trimmedData.email || !trimmedData.password) {
           throw new Error('Please enter email and password')
         }
         
-        console.log('🔐 LOGIN ATTEMPT - Sending to auth layer:', {
+        window.addDebugLog('🔐 LOGIN ATTEMPT', {
           email: trimmedData.email,
           emailLength: trimmedData.email.length,
-          passwordLength: trimmedData.password.length,
-          hasEmail: !!trimmedData.email,
-          hasPassword: !!trimmedData.password
+          passwordLength: trimmedData.password.length
         })
         
         const result = await login(trimmedData.email, trimmedData.password)
-        console.log('✅ LOGIN SUCCESS RESPONSE:', result)
+        window.addDebugLog('✅ LOGIN SUCCESS', result)
         setDebugInfo(`✅ Login successful! Welcome back ${result.businessName || result.email}`)
       }
       
-      // Show success message briefly before closing
       setTimeout(() => {
         onClose()
       }, 1000)
       
     } catch (err) {
-      console.error('🚨 AUTH ERROR DETAILS:', {
+      window.addDebugLog('🚨 AUTH ERROR', {
         message: err.message,
         stack: err.stack,
-        name: err.name,
-        timestamp: new Date().toISOString(),
-        email: formData.email.trim(),
-        userAgent: navigator.userAgent
+        formData: {
+          email: formData.email,
+          emailTrimmed: formData.email.trim(),
+          passwordLength: formData.password?.length
+        },
+        userAgent: navigator.userAgent,
+        domain: window.location.hostname
       })
       
       setError(err.message)
-      
-      // Display server response debug info for mobile debugging
-      setDebugInfo(`🔍 Debug Info: ${err.message} | Email: "${formData.email.trim()}" | Length: ${formData.email.trim().length} | Time: ${new Date().toLocaleTimeString()}`)
-      
-      // Add helpful debug info for mobile users
-      if (err.message.includes('Storage not available')) {
-        setDebugInfo('Try refreshing the page or enabling cookies in your browser settings. If using iOS Safari, disable Private Browsing mode.')
-      } else if (err.message.includes('Invalid credentials')) {
-        // Enhanced debugging for login failures
-        console.log('🔍 DETAILED LOGIN FAILURE ANALYSIS:', {
-          searchEmail: formData.email.trim(),
-          emailLength: formData.email.trim().length,
-          domain: window.location.hostname,
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toISOString()
-        })
-        
-        setDebugInfo(`❌ Login failed for "${formData.email.trim()}" - Check email/password. Email length: ${formData.email.trim().length}, Has spaces: ${formData.email !== formData.email.trim()}. Domain: ${window.location.hostname}`)
-        
-        // Only show Quick Login as last resort after failed login
-        const isAndroid = /Android/i.test(navigator.userAgent)
-        if (isAndroid) {
-          setShowQuickLogin(true)
-        }
-      } else if (err.message.includes('localStorage')) {
-        setDebugInfo('Your browser storage may be full or disabled. Try clearing browser data.')
-      }
+      setDebugInfo(`❌ Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
   }
 
   const toggleMode = () => {
     setIsSignupMode(!isSignupMode)
     setError('')
     setDebugInfo('')
-    setShowQuickLogin(false) // Reset quick login display
+    setShowQuickLogin(false)
     setFormData({
       email: '',
       password: '',
@@ -243,6 +139,18 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
       phone: '',
       address: ''
     })
+  }
+
+  const handleGuestLogin = async () => {
+    setLoading(true)
+    try {
+      await guestLogin()
+      onClose()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -254,9 +162,9 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
             <h2 className="text-xl font-bold text-white">
               {isSignupMode ? '🚀 Create Account' : '👋 Welcome Back'}
             </h2>
-            <button 
+            <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 text-2xl"
+              className="text-white hover:text-gray-200 text-2xl font-bold"
             >
               ×
             </button>
@@ -264,136 +172,90 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <div className="font-medium">{error}</div>
-              {debugInfo && (
-                <div className="text-xs mt-2 text-red-600 bg-red-100 p-2 rounded border font-mono">
-                  <strong>Debug Info:</strong> {debugInfo}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Success message display */}
-          {!error && debugInfo && debugInfo.includes('✅') && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-              <div className="font-medium">{debugInfo}</div>
-            </div>
-          )}
-
-          {/* Storage warning for mobile */}
-          {!isStorageAvailable && (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
-              <div className="font-medium">⚠️ Storage Issue Detected</div>
-              <div className="text-sm mt-1">
-                Please enable cookies/storage in your browser or disable private browsing mode to continue.
-              </div>
-            </div>
-          )}
-
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              📧 Email Address *
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
             </label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-              placeholder="your@email.com"
-              autoComplete="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck="false"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
               required
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              🔒 Password *
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
             </label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-              placeholder="Enter your password"
-              autoComplete={isSignupMode ? "new-password" : "current-password"}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck="false"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
               required
             />
           </div>
 
-          {/* Signup specific fields */}
+          {/* Signup Fields */}
           {isSignupMode && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏪 Business Name *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Business Name
                 </label>
                 <input
                   type="text"
                   name="businessName"
                   value={formData.businessName}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                  placeholder="Your Catering Business"
-                  autoComplete="organization"
-                  autoCapitalize="words"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  👤 Owner Name *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Owner Name
                 </label>
                 <input
                   type="text"
                   name="ownerName"
                   value={formData.ownerName}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                  placeholder="Your full name"
-                  autoComplete="name"
-                  autoCapitalize="words"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📱 Phone Number
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
                 </label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                  placeholder="+1 (555) 123-4567"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📍 Business Address
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
                 </label>
                 <textarea
                   name="address"
                   value={formData.address}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
                   rows="2"
-                  placeholder="Your business address"
                 />
               </div>
             </>
@@ -403,200 +265,129 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-3 px-4 rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-3 px-4 rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50"
           >
-            {loading ? (
-              <span className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                <span>Please wait...</span>
-              </span>
-            ) : (
-              isSignupMode ? '🚀 Create Account' : '🔓 Sign In'
-            )}
+            {loading ? 'Please wait...' : (isSignupMode ? '🚀 Create Account' : '🔓 Sign In')}
           </button>
 
-          {/* Emergency Login for Android users having trouble - ONLY show after failed login */}
-          {showQuickLogin && !isSignupMode && (
-            <>
-              <div className="text-center text-sm text-yellow-800 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                ⚠️ <strong>Emergency Login:</strong> Only use this if normal login keeps failing. 
-                This may create a new account instead of using your existing one.
-              </div>
-              <button
-                type="button"
-                onClick={handleQuickLogin}
-                disabled={loading || !formData.email || !formData.password}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 px-4 rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Creating...' : '⚡ Emergency Login (Last Resort)'}
-              </button>
-            </>
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
           )}
 
-          {/* Production Helper - Create account with same credentials if login fails */}
-          {error.includes('Invalid credentials') && !isSignupMode && (
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-              <div className="text-blue-800 text-sm">
-                <strong>💡 Tip:</strong> If you had an account on localhost but are now on a live server, 
-                your account data is separate. You may need to create a new account with the same email.
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignupMode(true)
-                  setError('')
-                  setDebugInfo('')
-                  // Keep the email but clear other fields
-                  setFormData({
-                    ...formData,
-                    businessName: '',
-                    ownerName: '',
-                    phone: '',
-                    address: ''
-                  })
-                }}
-                className="mt-2 w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors text-sm"
-              >
-                🚀 Create New Account with This Email
-              </button>
+          {/* Debug Info */}
+          {debugInfo && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
+              {debugInfo}
             </div>
           )}
 
           {/* Toggle Mode */}
-          <div className="text-center pt-4 border-t border-gray-200">
+          <div className="text-center pt-2">
             <button
               type="button"
               onClick={toggleMode}
-              className="text-orange-600 hover:text-orange-700 font-medium"
+              className="text-orange-600 hover:text-orange-700 text-sm font-medium"
             >
               {isSignupMode 
-                ? 'Already have an account? Sign in' 
-                : "Don't have an account? Create one"
-              }
+                ? "Already have an account? Sign in" 
+                : "Don't have an account? Create one"}
             </button>
           </div>
 
-          {/* Debug Panel - Show existing users */}
-          <div className="text-center pt-2 border-t border-gray-200">
+          {/* Debug Panel Toggle */}
+          <div className="text-center">
             <button
               type="button"
               onClick={() => {
                 setShowDebugPanel(!showDebugPanel)
                 if (!showDebugPanel && debugShowAllAccounts) {
-                  const result = debugShowAllAccounts()
-                  setDebugInfo(`🔍 Users on ${window.location.hostname}: ${result.totalAccounts} total accounts found. Check console for details.`)
+                  debugShowAllAccounts()
                 }
               }}
-              className="text-blue-500 hover:text-blue-700 text-xs underline"
+              className="text-gray-500 hover:text-gray-700 text-xs underline"
             >
               {showDebugPanel ? 'Hide Debug Info' : 'Show Debug Info (Troubleshooting)'}
             </button>
           </div>
 
-          {/* Debug Panel Display */}
+          {/* Debug Panel */}
           {showDebugPanel && (
             <div className="bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs">
               <div className="font-medium text-gray-700 mb-2">🔧 Debug Information:</div>
+              
+              {/* Copy All Logs Button - Most Important for Mobile */}
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const allLogs = window.debugLogs || []
+                    const logText = allLogs.map(log => 
+                      `[${log.timestamp}] ${log.message}\n${log.data}\n${'='.repeat(50)}`
+                    ).join('\n\n')
+                    
+                    const fullDebugReport = `
+MOBILE DEBUG REPORT - ${new Date().toISOString()}
+${'='.repeat(60)}
+
+SYSTEM INFO:
+- Domain: ${window.location.hostname}
+- User Agent: ${navigator.userAgent}
+- Storage Available: ${isStorageAvailable}
+- Screen: ${screen.width}x${screen.height}
+- Viewport: ${window.innerWidth}x${window.innerHeight}
+
+CURRENT FORM DATA:
+- Email: "${formData.email}"
+- Email Length: ${formData.email.length}
+- Password Length: ${formData.password.length}
+- Business Name: "${formData.businessName}"
+
+LOCALSTORAGE:
+- Users: ${localStorage.getItem('users')}
+- Current User: ${localStorage.getItem('currentUser')}
+
+DEBUG LOGS:
+${'='.repeat(60)}
+${logText}
+                    `.trim()
+                    
+                    // Try to copy to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                      navigator.clipboard.writeText(fullDebugReport).then(() => {
+                        setDebugInfo('📋 All logs copied to clipboard! Paste in a text editor to view.')
+                      }).catch(err => {
+                        console.error('Clipboard copy failed:', err)
+                        alert(fullDebugReport)
+                        setDebugInfo('📋 Debug report displayed in alert.')
+                      })
+                    } else {
+                      alert(fullDebugReport)
+                      setDebugInfo('📋 Debug report displayed in alert.')
+                    }
+                    
+                    console.log('📋 FULL DEBUG REPORT:', fullDebugReport)
+                  } catch (err) {
+                    console.error('Failed to copy logs:', err)
+                    setDebugInfo('❌ Failed to copy logs. Check console.')
+                  }
+                }}
+                className="w-full bg-red-500 text-white py-2 px-3 rounded text-sm font-medium hover:bg-red-600 transition-colors mb-3"
+              >
+                📋 COPY ALL LOGS (Mobile Debug)
+              </button>
+
               <div className="space-y-1 text-gray-600">
                 <div>Domain: {window.location.hostname}</div>
                 <div>Storage Available: {isStorageAvailable ? 'Yes' : 'No'}</div>
                 <div>User Agent: {navigator.userAgent.substring(0, 50)}...</div>
-                <div className="pt-2 text-blue-600">
-                  Check browser console for detailed user account information.
-                </div>
-              </div>
-              
-              {/* Quick Test Account Creator for Debugging */}
-              <div className="mt-3 pt-2 border-t border-gray-300">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const testData = {
-                        email: 'jayesh_rupapara@gmail.com',
-                        password: 'test123',
-                        businessName: 'Jayesh Catering',
-                        ownerName: 'Jayesh Rupapara',
-                        phone: '+91 9876543210',
-                        address: 'Gujarat, India'
-                      }
-                      
-                      console.log('🧪 CREATING TEST ACCOUNT FOR DEBUGGING:', testData)
-                      const result = await signup(testData)
-                      setDebugInfo(`✅ Test account created! Email: ${testData.email}, Password: ${testData.password}`)
-                      console.log('✅ TEST ACCOUNT CREATED:', result)
-                    } catch (err) {
-                      setDebugInfo(`❌ Test account creation failed: ${err.message}`)
-                      console.error('❌ TEST ACCOUNT CREATION FAILED:', err)
-                    }
-                  }}
-                  className="w-full bg-purple-500 text-white py-1 px-2 rounded text-xs hover:bg-purple-600 transition-colors mb-2"
-                >
-                  🧪 Create Test Account (jayesh_rupapara@gmail.com)
-                </button>
-                
-                {/* Mobile Input Comparison */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log('🔍 MOBILE INPUT COMPARISON:', {
-                      currentInputEmail: formData.email,
-                      currentInputPassword: formData.password,
-                      emailCharCodes: Array.from(formData.email).map(c => c.charCodeAt(0)),
-                      passwordCharCodes: Array.from(formData.password).map(c => c.charCodeAt(0)),
-                      emailBytes: new TextEncoder().encode(formData.email).length,
-                      passwordBytes: new TextEncoder().encode(formData.password).length,
-                      isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-                      inputType: typeof formData.email,
-                      hasInvisibleChars: formData.email !== formData.email.trim(),
-                      platform: navigator.platform,
-                      userAgent: navigator.userAgent
-                    })
-                    setDebugInfo(`🔍 Input analysis logged to console. Email length: ${formData.email.length}, Password length: ${formData.password.length}`)
-                  }}
-                  className="w-full bg-orange-500 text-white py-1 px-2 rounded text-xs hover:bg-orange-600 transition-colors mb-2"
-                >
-                  🔍 Analyze Mobile Input
-                </button>
-                
-                {/* Storage Inspector */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    try {
-                      const users = JSON.parse(localStorage.getItem('users') || '[]')
-                      const currentUser = localStorage.getItem('currentUser')
-                      const authToken = localStorage.getItem('authToken')
-                      
-                      console.log('💾 STORAGE INSPECTION:', {
-                        usersCount: users.length,
-                        allEmails: users.map(u => u.email),
-                        currentUser: currentUser,
-                        authToken: authToken,
-                        storageData: {
-                          users: users,
-                          currentUser: currentUser,
-                          authToken: authToken
-                        },
-                        domain: window.location.hostname,
-                        protocol: window.location.protocol
-                      })
-                      
-                      setDebugInfo(`💾 Found ${users.length} users in storage. Check console for details.`)
-                    } catch (err) {
-                      console.error('💾 STORAGE INSPECTION ERROR:', err)
-                      setDebugInfo(`💾 Storage inspection failed: ${err.message}`)
-                    }
-                  }}
-                  className="w-full bg-indigo-500 text-white py-1 px-2 rounded text-xs hover:bg-indigo-600 transition-colors"
-                >
-                  💾 Inspect Storage
-                </button>
               </div>
             </div>
           )}
 
-          {/* Guest Login - Ultimate fallback */}
+          {/* Guest Login */}
           <div className="text-center pt-2">
             <button
               type="button"
@@ -612,3 +403,5 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     </div>
   )
 }
+
+export default AuthModal
