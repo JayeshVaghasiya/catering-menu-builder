@@ -141,7 +141,13 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
         passwordLength: trimmedData.password.length,
         userAgent: navigator.userAgent,
         storageAvailable: isStorageAvailable,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        // Mobile-specific checks
+        isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        emailBytes: new TextEncoder().encode(trimmedData.email).length,
+        passwordBytes: new TextEncoder().encode(trimmedData.password).length,
+        emailCharCodes: Array.from(trimmedData.email).map(c => c.charCodeAt(0)),
+        passwordCharCodes: Array.from(trimmedData.password).map(c => c.charCodeAt(0))
       })
 
       if (isSignupMode) {
@@ -524,9 +530,67 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
                       console.error('❌ TEST ACCOUNT CREATION FAILED:', err)
                     }
                   }}
-                  className="w-full bg-purple-500 text-white py-1 px-2 rounded text-xs hover:bg-purple-600 transition-colors"
+                  className="w-full bg-purple-500 text-white py-1 px-2 rounded text-xs hover:bg-purple-600 transition-colors mb-2"
                 >
                   🧪 Create Test Account (jayesh_rupapara@gmail.com)
+                </button>
+                
+                {/* Mobile Input Comparison */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    console.log('🔍 MOBILE INPUT COMPARISON:', {
+                      currentInputEmail: formData.email,
+                      currentInputPassword: formData.password,
+                      emailCharCodes: Array.from(formData.email).map(c => c.charCodeAt(0)),
+                      passwordCharCodes: Array.from(formData.password).map(c => c.charCodeAt(0)),
+                      emailBytes: new TextEncoder().encode(formData.email).length,
+                      passwordBytes: new TextEncoder().encode(formData.password).length,
+                      isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+                      inputType: typeof formData.email,
+                      hasInvisibleChars: formData.email !== formData.email.trim(),
+                      platform: navigator.platform,
+                      userAgent: navigator.userAgent
+                    })
+                    setDebugInfo(`🔍 Input analysis logged to console. Email length: ${formData.email.length}, Password length: ${formData.password.length}`)
+                  }}
+                  className="w-full bg-orange-500 text-white py-1 px-2 rounded text-xs hover:bg-orange-600 transition-colors mb-2"
+                >
+                  🔍 Analyze Mobile Input
+                </button>
+                
+                {/* Storage Inspector */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const users = JSON.parse(localStorage.getItem('users') || '[]')
+                      const currentUser = localStorage.getItem('currentUser')
+                      const authToken = localStorage.getItem('authToken')
+                      
+                      console.log('💾 STORAGE INSPECTION:', {
+                        usersCount: users.length,
+                        allEmails: users.map(u => u.email),
+                        currentUser: currentUser,
+                        authToken: authToken,
+                        storageData: {
+                          users: users,
+                          currentUser: currentUser,
+                          authToken: authToken
+                        },
+                        domain: window.location.hostname,
+                        protocol: window.location.protocol
+                      })
+                      
+                      setDebugInfo(`💾 Found ${users.length} users in storage. Check console for details.`)
+                    } catch (err) {
+                      console.error('💾 STORAGE INSPECTION ERROR:', err)
+                      setDebugInfo(`💾 Storage inspection failed: ${err.message}`)
+                    }
+                  }}
+                  className="w-full bg-indigo-500 text-white py-1 px-2 rounded text-xs hover:bg-indigo-600 transition-colors"
+                >
+                  💾 Inspect Storage
                 </button>
               </div>
             </div>

@@ -103,7 +103,12 @@ export function AuthProvider({ children }) {
         hasEmail: !!email,
         hasPassword: !!password,
         emailType: typeof email,
-        passwordType: typeof password
+        passwordType: typeof password,
+        // Mobile debugging
+        isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        emailBytes: new TextEncoder().encode(email || '').length,
+        passwordBytes: new TextEncoder().encode(password || '').length,
+        domain: window.location.hostname
       })
       
       const usersData = safeGetItem('users', '[]')
@@ -130,11 +135,21 @@ export function AuthProvider({ children }) {
         console.log('❌ LOGIN FAILED - DETAILED DEBUG:', {
           searchEmail: email,
           searchPassword: password,
+          searchEmailBytes: new TextEncoder().encode(email || '').length,
+          searchPasswordBytes: new TextEncoder().encode(password || '').length,
+          isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
           availableUsers: users.map(u => ({
             email: u.email,
             emailMatch: u.email === email,
             passwordMatch: u.password === password,
-            bothMatch: u.email === email && u.password === password
+            bothMatch: u.email === email && u.password === password,
+            emailBytes: new TextEncoder().encode(u.email).length,
+            passwordBytes: new TextEncoder().encode(u.password).length,
+            // Character comparison for mobile debugging
+            emailCharCodes: Array.from(u.email).map(c => c.charCodeAt(0)),
+            passwordCharCodes: Array.from(u.password).map(c => c.charCodeAt(0)),
+            searchEmailCharCodes: Array.from(email || '').map(c => c.charCodeAt(0)),
+            searchPasswordCharCodes: Array.from(password || '').map(c => c.charCodeAt(0))
           }))
         })
         throw new Error('Invalid credentials')
@@ -352,6 +367,7 @@ export function AuthProvider({ children }) {
           email: user.email,
           id: user.id,
           businessName: user.businessName,
+          password: user.password, // Show password for debugging
           isTest: isTest ? '⚠️ TEST ACCOUNT' : '✅ REAL ACCOUNT',
           createdAt: user.createdAt
         })
