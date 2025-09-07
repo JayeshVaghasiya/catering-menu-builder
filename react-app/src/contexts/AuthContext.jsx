@@ -202,14 +202,14 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      // Browser engine detection
+      // Browser and device detection
       const isFirefox = /Firefox/.test(navigator.userAgent)
       const isChromiumBased = /Chrome|Chromium|Edge/.test(navigator.userAgent)
       const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)
       const isEdge = /Edg/.test(navigator.userAgent)
       const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      const isDesktop = !isMobile
+      const isDesktop = !isMobile // Desktop is opposite of mobile
       
       console.log('🔐 LOGIN ATTEMPT - BROWSER ENGINE ANALYSIS:', { 
         email,
