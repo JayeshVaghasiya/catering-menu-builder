@@ -32,6 +32,23 @@ export function AuthProvider({ children }) {
     try {
       if (!isStorageAvailable()) return defaultValue
       const item = localStorage.getItem(key)
+      
+      // Mobile-specific debugging for localStorage
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      if (isMobile && key === 'users') {
+        console.log('� MOBILE localStorage GET:', {
+          key,
+          itemExists: !!item,
+          itemLength: item?.length,
+          itemPreview: item?.substring(0, 100),
+          defaultValue,
+          returning: item || defaultValue,
+          userAgent: navigator.userAgent,
+          localStorage_length: localStorage.length,
+          storageQuota: navigator.storage ? 'available' : 'not_available'
+        })
+      }
+      
       return item || defaultValue
     } catch (error) {
       console.warn(`Error getting ${key} from localStorage:`, error)
@@ -42,6 +59,19 @@ export function AuthProvider({ children }) {
   const safeSetItem = (key, value) => {
     try {
       if (!isStorageAvailable()) return false
+      
+      // Mobile-specific debugging for localStorage
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      if (isMobile && key === 'users') {
+        console.log('� MOBILE localStorage SET:', {
+          key,
+          valueLength: value?.length,
+          valuePreview: value?.substring(0, 100),
+          valueType: typeof value,
+          userAgent: navigator.userAgent
+        })
+      }
+      
       localStorage.setItem(key, value)
       return true
     } catch (error) {
@@ -172,7 +202,15 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      console.log('🔐 LOGIN ATTEMPT:', { 
+      // Browser engine detection
+      const isFirefox = /Firefox/.test(navigator.userAgent)
+      const isChromiumBased = /Chrome|Chromium|Edge/.test(navigator.userAgent)
+      const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)
+      const isEdge = /Edg/.test(navigator.userAgent)
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      
+      console.log('🔐 LOGIN ATTEMPT - BROWSER ENGINE ANALYSIS:', { 
         email,
         emailLength: email?.length,
         passwordLength: password?.length,
@@ -180,10 +218,28 @@ export function AuthProvider({ children }) {
         hasPassword: !!password,
         emailType: typeof email,
         passwordType: typeof password,
-        // Mobile debugging
-        isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        // Browser engine debugging
+        browserEngine: isFirefox ? 'Firefox/SpiderMonkey' : isChromiumBased ? 'Chromium/V8' : 'Other',
+        isFirefox,
+        isChromiumBased,
+        isChrome,
+        isEdge,
+        isSafari,
+        isMobile,
+        userAgent: navigator.userAgent,
+        // JavaScript engine tests
+        v8Version: window.chrome?.runtime ? 'V8 detected' : 'No V8',
+        firefoxVersion: isFirefox ? navigator.userAgent.match(/Firefox\/(\d+)/)?.[1] : null,
+        chromeVersion: isChrome ? navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] : null,
+        edgeVersion: isEdge ? navigator.userAgent.match(/Edg\/(\d+)/)?.[1] : null,
+        // Input value debugging - comparing engines
+        emailCharCodes: email ? Array.from(email).map(c => c.charCodeAt(0)) : [],
+        passwordCharCodes: password ? Array.from(password).map(c => c.charCodeAt(0)) : [],
         emailBytes: new TextEncoder().encode(email || '').length,
         passwordBytes: new TextEncoder().encode(password || '').length,
+        // Object/String handling tests
+        jsonStringifyTest: JSON.stringify({test: email}),
+        objectCreateTest: Object.create(null).constructor === undefined,
         domain: window.location.hostname
       })
       
@@ -207,9 +263,66 @@ export function AuthProvider({ children }) {
         userEmails: Array.isArray(users) ? users.map(u => u.email) : 'NOT_ARRAY',
         searchingFor: email,
         usersType: typeof users,
-        isArray: Array.isArray(users)
+        isArray: Array.isArray(users),
+        // Device-specific localStorage debugging
+        deviceType: isMobile ? 'Mobile' : 'Desktop',
+        localStorageLength: localStorage.length,
+        usersDataRaw: usersData,
+        usersDataLength: usersData?.length,
+        isMobile,
+        isDesktop
       })
       
+      // Mobile-specific email/password comparison debugging
+      if (isMobile && Array.isArray(users) && users.length > 0) {
+        console.log('� MOBILE-SPECIFIC USER COMPARISON:', {
+          searchEmail: email,
+          searchEmailCharCodes: Array.from(email).map(c => c.charCodeAt(0)),
+          searchEmailHex: Array.from(email).map(c => c.charCodeAt(0).toString(16)),
+          searchPassword: password,
+          searchPasswordCharCodes: Array.from(password).map(c => c.charCodeAt(0)),
+          searchPasswordHex: Array.from(password).map(c => c.charCodeAt(0).toString(16)),
+          users: users.map(u => ({
+            storedEmail: u.email,
+            storedEmailCharCodes: Array.from(u.email).map(c => c.charCodeAt(0)),
+            storedEmailHex: Array.from(u.email).map(c => c.charCodeAt(0).toString(16)),
+            storedPassword: u.password,
+            storedPasswordCharCodes: Array.from(u.password).map(c => c.charCodeAt(0)),
+            storedPasswordHex: Array.from(u.password).map(c => c.charCodeAt(0).toString(16)),
+            emailEquality: u.email === email,
+            passwordEquality: u.password === password,
+            emailStrictEquality: Object.is(u.email, email),
+            passwordStrictEquality: Object.is(u.password, password),
+            emailTrimmedEquality: u.email.trim() === email.trim(),
+            passwordTrimmedEquality: u.password.trim() === password.trim(),
+            emailLength: u.email?.length,
+            passwordLength: u.password?.length,
+            searchEmailLength: email?.length,
+            searchPasswordLength: password?.length,
+            // Mobile keyboard detection
+            hasHiddenChars: /[\u200B-\u200D\uFEFF]/.test(email) || /[\u200B-\u200D\uFEFF]/.test(password),
+            emailNormalized: email.normalize('NFC'),
+            passwordNormalized: password.normalize('NFC'),
+            storedEmailNormalized: u.email.normalize('NFC'),
+            storedPasswordNormalized: u.password.normalize('NFC')
+          }))
+        })
+      }
+      
+      // Desktop comparison for reference (when on desktop)
+      if (isDesktop && Array.isArray(users) && users.length > 0) {
+        console.log('💻 DESKTOP USER COMPARISON:', {
+          searchEmail: email,
+          searchPassword: password,
+          users: users.map(u => ({
+            storedEmail: u.email,
+            storedPassword: u.password,
+            emailEquality: u.email === email,
+            passwordEquality: u.password === password
+          }))
+        })
+      }
+
       const user = Array.isArray(users) ? users.find(u => u.email === email && u.password === password) : null
       
       if (user) {
