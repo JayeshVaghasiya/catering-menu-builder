@@ -209,6 +209,7 @@ export function AuthProvider({ children }) {
       const isEdge = /Edg/.test(navigator.userAgent)
       const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const isDesktop = !isMobile
       
       console.log('🔐 LOGIN ATTEMPT - BROWSER ENGINE ANALYSIS:', { 
         email,
