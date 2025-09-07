@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
-  const { login, quickLogin, guestLogin, signup, isStorageAvailable } = useAuth()
+  const { login, quickLogin, guestLogin, signup, isStorageAvailable, debugShowAllAccounts } = useAuth()
   const [isSignupMode, setIsSignupMode] = useState(isSignup)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [debugInfo, setDebugInfo] = useState('')
   const [showQuickLogin, setShowQuickLogin] = useState(false)
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
   
   const [formData, setFormData] = useState({
     email: '',
@@ -199,7 +200,16 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
       if (err.message.includes('Storage not available')) {
         setDebugInfo('Try refreshing the page or enabling cookies in your browser settings. If using iOS Safari, disable Private Browsing mode.')
       } else if (err.message.includes('Invalid credentials')) {
-        setDebugInfo(`❌ Login failed for "${formData.email.trim()}" - Check email/password. Email length: ${formData.email.trim().length}, Has spaces: ${formData.email !== formData.email.trim()}`)
+        // Enhanced debugging for login failures
+        console.log('🔍 DETAILED LOGIN FAILURE ANALYSIS:', {
+          searchEmail: formData.email.trim(),
+          emailLength: formData.email.trim().length,
+          domain: window.location.hostname,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString()
+        })
+        
+        setDebugInfo(`❌ Login failed for "${formData.email.trim()}" - Check email/password. Email length: ${formData.email.trim().length}, Has spaces: ${formData.email !== formData.email.trim()}. Domain: ${window.location.hostname}`)
         
         // Only show Quick Login as last resort after failed login
         const isAndroid = /Android/i.test(navigator.userAgent)
@@ -417,6 +427,35 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
             </>
           )}
 
+          {/* Production Helper - Create account with same credentials if login fails */}
+          {error.includes('Invalid credentials') && !isSignupMode && (
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+              <div className="text-blue-800 text-sm">
+                <strong>💡 Tip:</strong> If you had an account on localhost but are now on a live server, 
+                your account data is separate. You may need to create a new account with the same email.
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignupMode(true)
+                  setError('')
+                  setDebugInfo('')
+                  // Keep the email but clear other fields
+                  setFormData({
+                    ...formData,
+                    businessName: '',
+                    ownerName: '',
+                    phone: '',
+                    address: ''
+                  })
+                }}
+                className="mt-2 w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              >
+                🚀 Create New Account with This Email
+              </button>
+            </div>
+          )}
+
           {/* Toggle Mode */}
           <div className="text-center pt-4 border-t border-gray-200">
             <button
@@ -430,6 +469,68 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
               }
             </button>
           </div>
+
+          {/* Debug Panel - Show existing users */}
+          <div className="text-center pt-2 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setShowDebugPanel(!showDebugPanel)
+                if (!showDebugPanel && debugShowAllAccounts) {
+                  const result = debugShowAllAccounts()
+                  setDebugInfo(`🔍 Users on ${window.location.hostname}: ${result.totalAccounts} total accounts found. Check console for details.`)
+                }
+              }}
+              className="text-blue-500 hover:text-blue-700 text-xs underline"
+            >
+              {showDebugPanel ? 'Hide Debug Info' : 'Show Debug Info (Troubleshooting)'}
+            </button>
+          </div>
+
+          {/* Debug Panel Display */}
+          {showDebugPanel && (
+            <div className="bg-gray-50 border border-gray-200 p-3 rounded-lg text-xs">
+              <div className="font-medium text-gray-700 mb-2">🔧 Debug Information:</div>
+              <div className="space-y-1 text-gray-600">
+                <div>Domain: {window.location.hostname}</div>
+                <div>Storage Available: {isStorageAvailable ? 'Yes' : 'No'}</div>
+                <div>User Agent: {navigator.userAgent.substring(0, 50)}...</div>
+                <div className="pt-2 text-blue-600">
+                  Check browser console for detailed user account information.
+                </div>
+              </div>
+              
+              {/* Quick Test Account Creator for Debugging */}
+              <div className="mt-3 pt-2 border-t border-gray-300">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const testData = {
+                        email: 'jayesh_rupapara@gmail.com',
+                        password: 'test123',
+                        businessName: 'Jayesh Catering',
+                        ownerName: 'Jayesh Rupapara',
+                        phone: '+91 9876543210',
+                        address: 'Gujarat, India'
+                      }
+                      
+                      console.log('🧪 CREATING TEST ACCOUNT FOR DEBUGGING:', testData)
+                      const result = await signup(testData)
+                      setDebugInfo(`✅ Test account created! Email: ${testData.email}, Password: ${testData.password}`)
+                      console.log('✅ TEST ACCOUNT CREATED:', result)
+                    } catch (err) {
+                      setDebugInfo(`❌ Test account creation failed: ${err.message}`)
+                      console.error('❌ TEST ACCOUNT CREATION FAILED:', err)
+                    }
+                  }}
+                  className="w-full bg-purple-500 text-white py-1 px-2 rounded text-xs hover:bg-purple-600 transition-colors"
+                >
+                  🧪 Create Test Account (jayesh_rupapara@gmail.com)
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Guest Login - Ultimate fallback */}
           <div className="text-center pt-2">
