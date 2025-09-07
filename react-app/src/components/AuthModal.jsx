@@ -94,12 +94,19 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
   }
 
   const handleInputChange = (e) => {
-    // Trim input values to prevent whitespace issues
-    const trimmedValue = e.target.value.trim()
+    // Don't trim during typing - only trim email/password fields to preserve spaces in names
+    const value = e.target.value
+    const fieldName = e.target.name
+    
+    // Only trim email and password fields during typing to prevent leading/trailing spaces
+    // but preserve spaces in business names, owner names, etc.
+    const processedValue = (fieldName === 'email' || fieldName === 'password') 
+      ? value.trim() 
+      : value
     
     setFormData({
       ...formData,
-      [e.target.name]: trimmedValue
+      [fieldName]: processedValue
     })
     setError('')
     setDebugInfo('')
@@ -112,12 +119,12 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
     setDebugInfo('')
 
     try {
-      // Trim all input values before submission
+      // Trim only email and password to prevent login issues, preserve spaces in names/addresses
       const trimmedData = {
         email: formData.email.trim(),
         password: formData.password.trim(),
-        businessName: formData.businessName.trim(),
-        ownerName: formData.ownerName.trim(),
+        businessName: formData.businessName.trim(), // Trim only leading/trailing spaces
+        ownerName: formData.ownerName.trim(), // Trim only leading/trailing spaces  
         phone: formData.phone.trim(),
         address: formData.address.trim()
       }
@@ -127,6 +134,8 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
         isSignupMode,
         originalEmail: formData.email,
         trimmedEmail: trimmedData.email,
+        originalBusinessName: formData.businessName,
+        trimmedBusinessName: trimmedData.businessName,
         emailLength: trimmedData.email.length,
         passwordLength: trimmedData.password.length,
         userAgent: navigator.userAgent,
@@ -321,6 +330,8 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                   placeholder="Your Catering Business"
+                  autoComplete="organization"
+                  autoCapitalize="words"
                   required
                 />
               </div>
@@ -336,6 +347,8 @@ export default function AuthModal({ isSignup = false, onToggleMode, onClose }) {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                   placeholder="Your full name"
+                  autoComplete="name"
+                  autoCapitalize="words"
                   required
                 />
               </div>
