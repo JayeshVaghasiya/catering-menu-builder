@@ -1,302 +1,269 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext()
+const AuthContext = createContext();
 
-export function useAuth() {
-  const context = useContext(AuthContext)
+export const useAuth = () => {
+  const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
-}
+  return context;
+};
 
-export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+// API base URL - update this if your backend runs on a different port
+const API_BASE_URL = 'http://localhost:3001/api';
+
+export const AuthProvider = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Check if user is logged in on app start
-    const userData = localStorage.getItem('currentUser')
-    if (userData) {
-      setCurrentUser(JSON.parse(userData))
+    // Check if user is already logged in by checking for saved token
+    const savedToken = localStorage.getItem('authToken');
+    if (savedToken) {
+      // Verify token is still valid by calling the API
+      fetch(`${API_BASE_URL}/user`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${savedToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          // Token is invalid, remove it
+          localStorage.removeItem('authToken');
+          throw new Error('Invalid token');
+        }
+      })
+      .then(data => {
+        const userWithMenus = {
+          ...data.user,
+          menus: data.user.menus || []
+        };
+        setCurrentUser(userWithMenus);
+        setToken(savedToken);
+      })
+      .catch(error => {
+        console.error('Error validating token:', error);
+        localStorage.removeItem('authToken');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
     }
-    setLoading(false)
-  }, [])
+  }, []);
 
   const signup = async (userData) => {
     try {
-      // In a real app, this would be an API call
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      
-      // Check if user already exists
-      if (users.find(u => u.email === userData.email)) {
-        throw new Error('User already exists with this email')
-      }
+      const response = await fetch(`${API_BASE_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          email: userData.email, 
+          password: userData.password,
+          ownerName: userData.ownerName,
+          businessName: userData.businessName,
+          phone: userData.phone,
+          address: userData.address
+        })
+      });
 
-      const newUser = {
-        id: Date.now().toString(),
-        ...userData,
-        createdAt: new Date().toISOString(),
-        menus: []
-      }
+      const data = await response.json();
 
-      users.push(newUser)
-      localStorage.setItem('users', JSON.stringify(users))
-      localStorage.setItem('currentUser', JSON.stringify(newUser))
-      setCurrentUser(newUser)
-      
-      return newUser
+      if (response.ok) {
+        // Save token and set user with parsed menus
+        setToken(data.token);
+        const userWithMenus = {
+          ...data.user,
+          menus: data.user.menus || []
+        };
+        setCurrentUser(userWithMenus);
+        localStorage.setItem('authToken', data.token);
+        return userWithMenus;
+      } else {
+        throw new Error(data.error || 'Registration failed');
+      }
     } catch (error) {
-      throw error
+      console.error('Signup error:', error);
+      throw error;
     }
-  }
+  };
 
   const login = async (email, password) => {
     try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const user = users.find(u => u.email === email && u.password === password)
-      
-      if (!user) {
-        throw new Error('Invalid email or password')
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Save token and set user with parsed menus
+        setToken(data.token);
+        const userWithMenus = {
+          ...data.user,
+          menus: data.user.menus || []
+        };
+        setCurrentUser(userWithMenus);
+        localStorage.setItem('authToken', data.token);
+        return userWithMenus;
+      } else {
+        throw new Error(data.error || 'Login failed');
       }
-
-      localStorage.setItem('currentUser', JSON.stringify(user))
-      setCurrentUser(user)
-      return user
     } catch (error) {
-      throw error
+      console.error('Login error:', error);
+      throw error;
     }
-  }
+  };
 
-  const logout = () => {
-    localStorage.removeItem('currentUser')
-    setCurrentUser(null)
-  }
+  const logout = async () => {
+    try {
+      // Call logout endpoint if we have a token
+      if (token) {
+        await fetch(`${API_BASE_URL}/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Logout API error:', error);
+      // Continue with local logout even if API call fails
+    } finally {
+      // Always clear local state
+      setCurrentUser(null);
+      setToken(null);
+      localStorage.removeItem('authToken');
+    }
+  };
 
   const updateUserProfile = (updates) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const updatedUsers = users.map(u => 
-      u.id === currentUser.id ? { ...u, ...updates } : u
-    )
-    
-    const updatedUser = { ...currentUser, ...updates }
-    localStorage.setItem('users', JSON.stringify(updatedUsers))
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-    setCurrentUser(updatedUser)
-  }
+    // For now, just update local state
+    // In a full implementation, this would also call an API
+    const updatedUser = { ...currentUser, ...updates };
+    setCurrentUser(updatedUser);
+    return updatedUser;
+  };
 
-  // Storage management utility
-  const getStorageSize = () => {
-    let total = 0
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        total += localStorage[key].length + key.length
-      }
-    }
-    return total
-  }
-
-  const cleanupOldMenus = (userId, forceCleanup = false) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    const user = users.find(u => u.id === userId)
-    
-    if (user && user.menus && user.menus.length > 0) {
-      let menusToKeep = 10
-      
-      // If forced cleanup due to storage issues, be more aggressive
-      if (forceCleanup) {
-        menusToKeep = Math.max(3, Math.floor(user.menus.length / 2))
-      }
-      
-      // Keep only the most recent menus
-      if (user.menus.length > menusToKeep) {
-        const sortedMenus = user.menus
-          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-          .slice(0, menusToKeep)
-        
-        const updatedUsers = users.map(u => 
-          u.id === userId ? { ...u, menus: sortedMenus } : u
-        )
-        
-        localStorage.setItem('users', JSON.stringify(updatedUsers))
-        
-        if (currentUser.id === userId) {
-          const updatedCurrentUser = { ...currentUser, menus: sortedMenus }
-          localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser))
-          setCurrentUser(updatedCurrentUser)
-        }
-        
-        return true // Cleanup performed
-      }
-    }
-    return false // No cleanup needed
-  }
-
-  // Emergency storage cleanup - remove all old data
-  const emergencyCleanup = () => {
+  const saveMenu = async (menuData) => {
     try {
-      // Keep only current user data and clear everything else
-      const currentUserData = localStorage.getItem('currentUser')
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      
-      // Clear all localStorage
-      localStorage.clear()
-      
-      // Only restore current user with minimal data
-      if (currentUserData) {
-        const user = JSON.parse(currentUserData)
-        const minimalUser = {
-          id: user.id,
-          email: user.email,
-          businessName: user.businessName || '',
-          address: user.address || '',
-          phone: user.phone || '',
-          menus: [] // Start fresh with no menus
-        }
-        
-        localStorage.setItem('users', JSON.stringify([minimalUser]))
-        localStorage.setItem('currentUser', JSON.stringify(minimalUser))
-        setCurrentUser(minimalUser)
-      }
-      
-      return true
-    } catch (error) {
-      return false
-    }
-  }
+      const response = await fetch(`${API_BASE_URL}/menus`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ menuData })
+      });
 
-  const saveMenu = (menuData) => {
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update local state with the saved menu
+        const updatedUser = {
+          ...currentUser,
+          menus: [...(currentUser.menus || []), data.menu]
+        };
+        setCurrentUser(updatedUser);
+        return data.menu;
+      } else {
+        throw new Error(data.error || 'Failed to save menu');
+      }
+    } catch (error) {
+      console.error('Save menu error:', error);
+      throw error;
+    }
+  };
+
+  const updateMenu = async (menuId, menuData) => {
     try {
-      // First, let's try to save normally
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const menuWithId = {
-        id: Date.now().toString(),
-        ...menuData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      
-      const updatedUsers = users.map(u => 
-        u.id === currentUser.id 
-          ? { ...u, menus: [...(u.menus || []), menuWithId] }
-          : u
-      )
-      
-      const updatedUser = {
-        ...currentUser,
-        menus: [...(currentUser.menus || []), menuWithId]
-      }
-      
-      localStorage.setItem('users', JSON.stringify(updatedUsers))
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-      setCurrentUser(updatedUser)
-      
-      return menuWithId
-    } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        // Try emergency cleanup first
-        const cleanupSuccess = emergencyCleanup()
-        
-        if (!cleanupSuccess) {
-          throw new Error('Unable to save menu. Please clear your browser data and try again.')
-        }
-        
-        // Try to save again after emergency cleanup
-        try {
-          const menuWithId = {
-            id: Date.now().toString(),
-            ...menuData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-          
-          const users = [{ ...currentUser, menus: [menuWithId] }]
-          const updatedUser = { ...currentUser, menus: [menuWithId] }
-          
-          localStorage.setItem('users', JSON.stringify(users))
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-          setCurrentUser(updatedUser)
-          
-          alert('Storage was full. We\'ve cleared old data and saved your new menu.')
-          return menuWithId
-        } catch (retryError) {
-          throw new Error('Storage quota exceeded. Please clear your browser data (Settings > Clear browsing data) and try again.')
-        }
-      }
-      throw error
-    }
-  }
+      const response = await fetch(`${API_BASE_URL}/menus/${menuId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ menuData })
+      });
 
-  const updateMenu = (menuId, menuData) => {
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        const updatedUser = {
+          ...currentUser,
+          menus: (currentUser.menus || []).map(m => 
+            m.id === menuId ? { ...m, ...menuData, updatedAt: new Date().toISOString() } : m
+          )
+        };
+        setCurrentUser(updatedUser);
+      } else {
+        throw new Error(data.error || 'Failed to update menu');
+      }
+    } catch (error) {
+      console.error('Update menu error:', error);
+      throw error;
+    }
+  };
+
+  const deleteMenu = async (menuId) => {
     try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const updatedMenuData = {
-        ...menuData,
-        updatedAt: new Date().toISOString()
-      }
-      
-      const updatedUsers = users.map(u => 
-        u.id === currentUser.id 
-          ? { 
-              ...u, 
-              menus: u.menus.map(m => 
-                m.id === menuId ? { ...m, ...updatedMenuData } : m
-              )
-            }
-          : u
-      )
-      
-      const updatedUser = {
-        ...currentUser,
-        menus: currentUser.menus.map(m => 
-          m.id === menuId ? { ...m, ...updatedMenuData } : m
-        )
-      }
-      
-      localStorage.setItem('users', JSON.stringify(updatedUsers))
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-      setCurrentUser(updatedUser)
-    } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        throw new Error('Storage quota exceeded. Please delete some old menus to free up space.')
-      }
-      throw error
-    }
-  }
+      const response = await fetch(`${API_BASE_URL}/menus/${menuId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-  const deleteMenu = (menuId) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]')
-    
-    const updatedUsers = users.map(u => 
-      u.id === currentUser.id 
-        ? { ...u, menus: u.menus.filter(m => m.id !== menuId) }
-        : u
-    )
-    
-    const updatedUser = {
-      ...currentUser,
-      menus: currentUser.menus.filter(m => m.id !== menuId)
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        const updatedUser = {
+          ...currentUser,
+          menus: (currentUser.menus || []).filter(menu => menu.id !== menuId)
+        };
+        setCurrentUser(updatedUser);
+      } else {
+        throw new Error(data.error || 'Failed to delete menu');
+      }
+    } catch (error) {
+      console.error('Delete menu error:', error);
+      throw error;
     }
-    
-    localStorage.setItem('users', JSON.stringify(updatedUsers))
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-    setCurrentUser(updatedUser)
-  }
+  };
 
   const value = {
     currentUser,
     login,
     signup,
     logout,
+    loading,
+    token,
     updateUserProfile,
     saveMenu,
     updateMenu,
     deleteMenu
-  }
+  };
 
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
