@@ -67,14 +67,24 @@ export function AuthProvider({ children }) {
       try {
         const userData = safeGetItem('currentUser')
         const usersData = safeGetItem('users', '[]')
-        const users = JSON.parse(usersData)
+        let users = []
+        
+        try {
+          users = JSON.parse(usersData) || []
+          if (!Array.isArray(users)) {
+            users = []
+          }
+        } catch (parseError) {
+          console.warn('⚠️ USERS PARSE ERROR IN VALIDATION:', parseError)
+          users = []
+        }
         
         // Debug deployment state
         console.log('🌐 DEPLOYMENT DEBUG:', {
           domain: window.location.hostname,
           currentUser: userData ? 'exists' : 'none',
           totalUsers: users.length,
-          userEmails: users.map(u => u.email),
+          userEmails: Array.isArray(users) ? users.map(u => u.email) : 'NOT_ARRAY',
           isProduction: window.location.hostname !== 'localhost'
         })
         
@@ -112,15 +122,29 @@ export function AuthProvider({ children }) {
       })
       
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        // Ensure users is always an array
+        if (!Array.isArray(users)) {
+          console.warn('⚠️ USERS DATA NOT ARRAY:', { usersData, type: typeof users })
+          users = []
+        }
+      } catch (parseError) {
+        console.error('💥 USERS PARSE ERROR:', parseError, { usersData })
+        users = []
+      }
       
       console.log('📊 USER STORAGE DEBUG:', {
         totalUsers: users.length,
-        userEmails: users.map(u => u.email),
-        searchingFor: email
+        userEmails: Array.isArray(users) ? users.map(u => u.email) : 'NOT_ARRAY',
+        searchingFor: email,
+        usersType: typeof users,
+        isArray: Array.isArray(users)
       })
       
-      const user = users.find(u => u.email === email && u.password === password)
+      const user = Array.isArray(users) ? users.find(u => u.email === email && u.password === password) : null
       
       if (user) {
         console.log('✅ LOGIN SUCCESS:', { email, userId: user.id, businessName: user.businessName })
@@ -138,7 +162,9 @@ export function AuthProvider({ children }) {
           searchEmailBytes: new TextEncoder().encode(email || '').length,
           searchPasswordBytes: new TextEncoder().encode(password || '').length,
           isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-          availableUsers: users.map(u => ({
+          usersIsArray: Array.isArray(users),
+          usersLength: users?.length || 0,
+          availableUsers: Array.isArray(users) ? users.map(u => ({
             email: u.email,
             emailMatch: u.email === email,
             passwordMatch: u.password === password,
@@ -150,7 +176,7 @@ export function AuthProvider({ children }) {
             passwordCharCodes: Array.from(u.password).map(c => c.charCodeAt(0)),
             searchEmailCharCodes: Array.from(email || '').map(c => c.charCodeAt(0)),
             searchPasswordCharCodes: Array.from(password || '').map(c => c.charCodeAt(0))
-          }))
+          })) : 'USERS_NOT_ARRAY'
         })
         throw new Error('Invalid credentials')
       }
@@ -165,10 +191,20 @@ export function AuthProvider({ children }) {
       console.log('📝 SIGNUP ATTEMPT:', { email, businessName })
       
       const usersData = safeGetItem('users', '[]')
-      const users = JSON.parse(usersData)
+      let users = []
+      
+      try {
+        users = JSON.parse(usersData) || []
+        if (!Array.isArray(users)) {
+          users = []
+        }
+      } catch (parseError) {
+        console.warn('⚠️ USERS PARSE ERROR IN SIGNUP:', parseError)
+        users = []
+      }
       
       // Check if user already exists
-      if (users.find(u => u.email === email)) {
+      if (Array.isArray(users) && users.find(u => u.email === email)) {
         console.log('❌ SIGNUP FAILED: User already exists', email)
         throw new Error('User already exists')
       }
