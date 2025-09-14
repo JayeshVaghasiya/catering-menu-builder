@@ -14,6 +14,15 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
   console.log('Preview component - brand data:', brand)
   console.log('Preview component - services:', brand?.services)
 
+  // Helper function to sort items by creation order (oldest first)
+  const getSortedMealTypes = () => {
+    return [...mealTypes].sort((a, b) => a.id - b.id)
+  }
+
+  const getSortedCategories = (categories) => {
+    return [...categories].sort((a, b) => a.id - b.id)
+  }
+
   useImperativeHandle(ref, () => ({
     exportPdf
   }))
@@ -162,15 +171,19 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
       document.body.removeChild(tempBrandingDiv)
       
       // Add each meal type as separate pages with automatic pagination
-      for (let i = 0; i < mealTypes.length; i++) {
-        const mealType = mealTypes[i]
+      // Use sorted meal types for logical order in PDF
+      const sortedMealTypes = getSortedMealTypes()
+      for (let i = 0; i < sortedMealTypes.length; i++) {
+        const mealType = sortedMealTypes[i]
         
         // Split categories into chunks to avoid overcrowding
+        // Use sorted categories for logical order
+        const sortedCategories = getSortedCategories(mealType.categories)
         const maxCategoriesPerPage = 3 // Maximum 3 categories per page for good quality
         const categoryChunks = []
         
-        for (let j = 0; j < mealType.categories.length; j += maxCategoriesPerPage) {
-          categoryChunks.push(mealType.categories.slice(j, j + maxCategoriesPerPage))
+        for (let j = 0; j < sortedCategories.length; j += maxCategoriesPerPage) {
+          categoryChunks.push(sortedCategories.slice(j, j + maxCategoriesPerPage))
         }
         
         // If no categories, create one page anyway
@@ -223,6 +236,12 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                     <p style="font-size: 24px; color: white; margin: 8px 0; 
                                text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
                       🎉 ${mealType.occasion}
+                    </p>
+                  ` : ''}
+                  ${brand.customerName ? `
+                    <p style="font-size: 22px; color: white; margin: 8px 0; 
+                               text-shadow: 1px 1px 2px rgba(0,0,0,0.3); font-weight: 600;">
+                      👤 ${brand.customerName}
                     </p>
                   ` : ''}
                   <p style="font-size: 20px; color: white; margin: 10px 0; 
@@ -662,7 +681,9 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
         </div>
 
         {/* Menu Pages Preview */}
-        {mealTypes.map((mealType, index) => (
+        {getSortedMealTypes().map((mealType, index) => {
+          const sortedCategories = getSortedCategories(mealType.categories)
+          return (
           <div key={mealType.id} className="bg-gray-100 p-6 rounded-xl">
             <h4 className="text-sm font-medium text-gray-700 mb-4 flex items-center space-x-2">
               <span>📋</span>
@@ -703,6 +724,11 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
                       🎉 {mealType.occasion}
                     </p>
                   )}
+                  {brand.customerName && (
+                    <p className="text-xl text-white mb-2 font-semibold" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
+                      👤 {brand.customerName}
+                    </p>
+                  )}
                   <p className="text-xl text-white mb-3" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
                     {brand.businessName || 'Your Business Name'}
                   </p>
@@ -730,8 +756,8 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
 
                 {/* Clean Menu Categories */}
                 <div className="p-10 space-y-6">
-                  {mealType.categories && mealType.categories.length > 0 ? (
-                    mealType.categories.map((cat, catIndex) => (
+                  {sortedCategories && sortedCategories.length > 0 ? (
+                    sortedCategories.map((cat, catIndex) => (
                       <div key={cat.id || catIndex} className="bg-white rounded-2xl p-8 shadow-md" style={{ borderLeft: `5px solid ${colors.categoryColor}` }}>
                         {/* Category Header */}
                         <div className="flex items-center mb-5">
@@ -797,7 +823,7 @@ export default forwardRef(function Preview({ brand, mealTypes, template }, ref) 
               </div>
             </div>
           </div>
-        ))}
+        )})}
 
         {/* Special Notes Page Preview */}
         {brand.specialNotes && brand.specialNotes.trim() && (

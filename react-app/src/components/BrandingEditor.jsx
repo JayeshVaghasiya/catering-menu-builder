@@ -96,6 +96,17 @@ export default function BrandingEditor({ brand, updateBrand, setTemplate, templa
               placeholder="Phone / Email / Address"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">👤 Customer Name</label>
+            <input 
+              value={brand.customerName || ''} 
+              onChange={e=>updateBrand({ customerName: e.target.value })} 
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+              placeholder="e.g., Mr. & Mrs. Smith, ABC Corporation, Johnson Family"
+            />
+            <p className="text-xs text-gray-500 mt-1">This will appear on all menu pages</p>
+          </div>
         </div>
 
         {/* Services Section */}

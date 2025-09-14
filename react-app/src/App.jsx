@@ -59,6 +59,8 @@ function MenuCreator({ editingMenu = null, onSave, onCancel }) {
     {
       id: Date.now(),
       name: 'Lunch',
+      date: '',
+      occasion: '',
       categories: [
         { id: Date.now() + 1, name: 'Starters', dishes: ['Paneer Tikka', 'Hara Bhara Kebab'] }
       ]
