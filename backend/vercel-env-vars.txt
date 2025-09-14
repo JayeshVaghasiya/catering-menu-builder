@@ -9,8 +9,8 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 SUPABASE_JWT_SECRET=PpufHz3Fo7Dqm9m+TltHb7Oc/3PRSGwex7DZaTRW1h4DpZtoio+aPUovlw3Z8gyYPIv4Dec3dx6a5DTdDSfoRg==
 
 # Admin User
-ADMIN_EMAIL=admin@catering.com
-ADMIN_PASSWORD=admin123
+ADMIN_EMAIL=jayeshvaghasiya2657@gmail.com
+ADMIN_PASSWORD=J@123456
 
 # Environment
 NODE_ENV=production
