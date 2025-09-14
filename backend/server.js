@@ -10,7 +10,7 @@ const database = require('./db-supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // Dynamic CORS configuration based on environment
 const allowedOrigins = process.env.NODE_ENV === 'production' 

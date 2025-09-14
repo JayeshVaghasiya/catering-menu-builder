@@ -7,8 +7,8 @@ let supabase = null;
 function getSupabase() {
   if (supabase) return supabase;
   
-  const supabaseUrl = process.env.SUPABASE_URL || 'https://vetrzqgokhybmufvgzzf.supabase.co';
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZldHJ6cWdva2h5Ym11ZnZnenpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NDY0OTQsImV4cCI6MjA3MzQyMjQ5NH0.5BmnKmoSvx8A5ynNnYSiht6Qv8uZrkgU-bYo8EdUHYw';
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vetrzqgokhybmufvgzzf.supabase.co';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZldHJ6cWdva2h5Ym11ZnZnenpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NDY0OTQsImV4cCI6MjA3MzQyMjQ5NH0.5BmnKmoSvx8A5ynNnYSiht6Qv8uZrkgU-bYo8EdUHYw';
   
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required');

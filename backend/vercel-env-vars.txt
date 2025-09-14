@@ -5,11 +5,8 @@
 SUPABASE_URL=https://vetrzqgokhybmufvgzzf.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZldHJ6cWdva2h5Ym11ZnZnenpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NDY0OTQsImV4cCI6MjA3MzQyMjQ5NH0.5BmnKmoSvx8A5ynNnYSiht6Qv8uZrkgU-bYo8EdUHYw
 
-# Database Configuration (Fallback)
-DATABASE_URL=postgres://postgres.vetrzqgokhybmufvgzzf:0MhzJNLennNaT2co@db.vetrzqgokhybmufvgzzf.supabase.co:5432/postgres?sslmode=require
-
-# Authentication
-JWT_SECRET=your-super-secret-jwt-key-please-change-this-in-production-use-64-chars
+# Authentication (use the SUPABASE_JWT_SECRET you already have)
+SUPABASE_JWT_SECRET=PpufHz3Fo7Dqm9m+TltHb7Oc/3PRSGwex7DZaTRW1h4DpZtoio+aPUovlw3Z8gyYPIv4Dec3dx6a5DTdDSfoRg==
 
 # Admin User
 ADMIN_EMAIL=admin@catering.com
