@@ -24,12 +24,28 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Initialize SQLite database
-const db = new sqlite3.Database('./database.sqlite', (err) => {
+// Initialize SQLite database with Vercel compatibility
+const path = require('path');
+const fs = require('fs');
+
+// For Vercel, use /tmp directory for the database
+const dbPath = process.env.NODE_ENV === 'production' 
+  ? '/tmp/database.sqlite' 
+  : './database.sqlite';
+
+// In production (Vercel), copy database to /tmp if it doesn't exist
+if (process.env.NODE_ENV === 'production') {
+  const sourcePath = path.join(__dirname, 'database.sqlite');
+  if (fs.existsSync(sourcePath) && !fs.existsSync(dbPath)) {
+    fs.copyFileSync(sourcePath, dbPath);
+  }
+}
+
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
   } else {
-    console.log('Connected to SQLite database');
+    console.log('Connected to SQLite database at:', dbPath);
     
     // Create users table if it doesn't exist
     db.run(`
@@ -436,8 +452,13 @@ app.delete('/api/menus/:menuId', authenticateToken, (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-  console.log(`CORS enabled for React dev server on http://localhost:5173`);
-});
+// Start server (for local development)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+    console.log(`CORS enabled for React dev server on http://localhost:5173`);
+  });
+}
+
+// Export for Vercel
+module.exports = app;
