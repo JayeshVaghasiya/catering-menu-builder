@@ -52,17 +52,17 @@ app.use(express.json());
 const path = require('path');
 const fs = require('fs');
 
-// For Vercel, use /tmp directory for the database
+// Database path - use project directory instead of /tmp for better persistence
 const dbPath = process.env.NODE_ENV === 'production' 
-  ? '/tmp/database.sqlite' 
+  ? path.join(__dirname, 'database.sqlite')  // Keep in project directory
   : './database.sqlite';
 
-// In production (Vercel), copy database to /tmp if it doesn't exist
-if (process.env.NODE_ENV === 'production') {
-  const sourcePath = path.join(__dirname, 'database.sqlite');
-  if (fs.existsSync(sourcePath) && !fs.existsSync(dbPath)) {
-    fs.copyFileSync(sourcePath, dbPath);
-  }
+console.log('Database will be stored at:', dbPath);
+
+// Ensure the directory exists
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -114,10 +114,69 @@ const db = new sqlite3.Database(dbPath, (err) => {
             // Ignore errors - columns might already exist
           });
         });
+        
+        // Create default test user for production if it doesn't exist
+        if (process.env.NODE_ENV === 'production') {
+          createDefaultTestUser();
+        }
       }
     });
   }
 });
+
+// Function to create default test user
+async function createDefaultTestUser() {
+  // Use environment variables for persistent admin account
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@catering.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  
+  // Check if admin user already exists
+  db.get('SELECT id FROM users WHERE email = ?', [adminEmail], async (err, user) => {
+    if (err) {
+      console.error('Error checking for admin user:', err);
+      return;
+    }
+    
+    if (!user) {
+      // Create admin user
+      try {
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        const userId = require('uuid').v4();
+        
+        db.run(`
+          INSERT INTO users (
+            id, email, password, owner_name, business_name, 
+            phone, address, tagline, services, special_notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          userId,
+          adminEmail,
+          hashedPassword,
+          'Admin User',
+          'Catering Menu Pro',
+          '+1-800-CATERING',
+          'Admin Address',
+          'Professional catering menu creator',
+          'Wedding Catering, Corporate Events, Birthday Parties, Festival Catering',
+          '⚠️ This is a demo admin account. In production, create your own account.'
+        ], (err) => {
+          if (err) {
+            console.error('Error creating admin user:', err);
+          } else {
+            console.log('✅ Admin user created/verified:');
+            console.log(`   Email: ${adminEmail}`);
+            console.log('   Password: [Set via ADMIN_PASSWORD env var]');
+            console.log('⚠️  IMPORTANT: Set ADMIN_EMAIL and ADMIN_PASSWORD in Vercel env vars for production');
+          }
+        });
+      } catch (error) {
+        console.error('Error hashing password for admin user:', error);
+      }
+    } else {
+      console.log(`✅ Admin user exists: ${adminEmail}`);
+    }
+  });
+}
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
