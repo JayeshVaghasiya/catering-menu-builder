@@ -12,14 +12,38 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-i
 
 // Dynamic CORS configuration based on environment
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? (process.env.PROD_CORS_ORIGIN ? process.env.PROD_CORS_ORIGIN.split(',') : [])
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+  ? [
+      'https://santosh-catering.vercel.app',
+      'https://cateringmenu-frontend-jayesh.vercel.app',
+      'http://localhost:4173',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:4173',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174'
+    ]
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://localhost:4173'];
 
 console.log('CORS enabled for origins:', allowedOrigins);
 
 // Middleware
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // In development, allow any localhost origin
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());
