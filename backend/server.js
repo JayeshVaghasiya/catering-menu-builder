@@ -2,9 +2,11 @@
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const sqlite3 = require('sqlite3').verbose();
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
+
+// Import database helper (Supabase for both development and production)
+const database = require('./db-supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,135 +50,58 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Initialize SQLite database with Vercel compatibility
-const path = require('path');
-const fs = require('fs');
-
-// Database path - use project directory instead of /tmp for better persistence
-const dbPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, 'database.sqlite')  // Keep in project directory
-  : './database.sqlite';
-
-console.log('Database will be stored at:', dbPath);
-
-// Ensure the directory exists
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database at:', dbPath);
-    
-    // Create users table if it doesn't exist
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        owner_name TEXT,
-        business_name TEXT,
-        phone TEXT,
-        address TEXT,
-        tagline TEXT,
-        services TEXT,
-        special_notes TEXT,
-        logo_data_url TEXT,
-        ganapati_data_url TEXT,
-        menus TEXT DEFAULT '[]',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `, (err) => {
-      if (err) {
-        console.error('Error creating users table:', err.message);
-      } else {
-        console.log('Users table ready');
-        
-        // Add new columns to existing table if they don't exist
-        const alterQueries = [
-          'ALTER TABLE users ADD COLUMN owner_name TEXT',
-          'ALTER TABLE users ADD COLUMN business_name TEXT',
-          'ALTER TABLE users ADD COLUMN phone TEXT',
-          'ALTER TABLE users ADD COLUMN address TEXT',
-          'ALTER TABLE users ADD COLUMN tagline TEXT',
-          'ALTER TABLE users ADD COLUMN services TEXT',
-          'ALTER TABLE users ADD COLUMN special_notes TEXT',
-          'ALTER TABLE users ADD COLUMN logo_data_url TEXT',
-          'ALTER TABLE users ADD COLUMN ganapati_data_url TEXT',
-          'ALTER TABLE users ADD COLUMN menus TEXT DEFAULT \'[]\''
-        ];
-        
-        alterQueries.forEach(query => {
-          db.run(query, (err) => {
-            // Ignore errors - columns might already exist
-          });
-        });
-        
-        // Create default test user for production if it doesn't exist
-        if (process.env.NODE_ENV === 'production') {
-          createDefaultTestUser();
-        }
-      }
-    });
+// Initialize database (PostgreSQL for production, SQLite for development)
+async function initializeDatabase() {
+  await database.initializeDatabase();
+  
+  // Create default admin user if in production
+  if (process.env.NODE_ENV === 'production') {
+    await createDefaultTestUser();
   }
-});
+}
 
 // Function to create default test user
 async function createDefaultTestUser() {
-  // Use environment variables for persistent admin account
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@catering.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  
-  // Check if admin user already exists
-  db.get('SELECT id FROM users WHERE email = ?', [adminEmail], async (err, user) => {
-    if (err) {
-      console.error('Error checking for admin user:', err);
-      return;
-    }
+  try {
+    // Use environment variables for persistent admin account
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@catering.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     
-    if (!user) {
+    // Check if admin user already exists
+    const existingUser = await database.findUserByEmail(adminEmail);
+    
+    if (!existingUser) {
       // Create admin user
-      try {
-        const hashedPassword = await bcrypt.hash(adminPassword, 10);
-        const userId = require('uuid').v4();
-        
-        db.run(`
-          INSERT INTO users (
-            id, email, password, owner_name, business_name, 
-            phone, address, tagline, services, special_notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          userId,
-          adminEmail,
-          hashedPassword,
-          'Admin User',
-          'Catering Menu Pro',
-          '+1-800-CATERING',
-          'Admin Address',
-          'Professional catering menu creator',
-          'Wedding Catering, Corporate Events, Birthday Parties, Festival Catering',
-          '⚠️ This is a demo admin account. In production, create your own account.'
-        ], (err) => {
-          if (err) {
-            console.error('Error creating admin user:', err);
-          } else {
-            console.log('✅ Admin user created/verified:');
-            console.log(`   Email: ${adminEmail}`);
-            console.log('   Password: [Set via ADMIN_PASSWORD env var]');
-            console.log('⚠️  IMPORTANT: Set ADMIN_EMAIL and ADMIN_PASSWORD in Vercel env vars for production');
-          }
-        });
-      } catch (error) {
-        console.error('Error hashing password for admin user:', error);
-      }
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      const userId = require('uuid').v4();
+      
+      await database.createUser({
+        id: userId,
+        email: adminEmail,
+        password: hashedPassword,
+        owner_name: 'Admin User',
+        business_name: 'Catering Menu Pro',
+        phone: '+1-800-CATERING',
+        address: 'Admin Address',
+        tagline: 'Professional catering menu creator',
+        services: 'Wedding Catering, Corporate Events, Birthday Parties, Festival Catering',
+        special_notes: '⚠️ This is a demo admin account. In production, create your own account.'
+      });
+      
+      console.log('✅ Admin user created/verified:');
+      console.log(`   Email: ${adminEmail}`);
+      console.log('   Password: [Set via ADMIN_PASSWORD env var]');
+      console.log('⚠️  IMPORTANT: Set ADMIN_EMAIL and ADMIN_PASSWORD in Vercel env vars for production');
     } else {
       console.log(`✅ Admin user exists: ${adminEmail}`);
     }
-  });
+  } catch (error) {
+    console.error('Error creating/checking admin user:', error);
+  }
 }
+
+// Initialize database on startup
+initializeDatabase().catch(console.error);
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -227,13 +152,9 @@ app.post('/api/register', async (req, res) => {
     }
 
     // Check if user already exists
-    db.get('SELECT id FROM users WHERE email = ?', [email], async (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-
-      if (row) {
+    try {
+      const existingUser = await database.findUserByEmail(email);
+      if (existingUser) {
         return res.status(400).json({ error: 'User already exists with this email' });
       }
 
@@ -242,52 +163,54 @@ app.post('/api/register', async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, saltRounds);
       const userId = uuidv4();
 
-      // Insert new user with profile data
-      db.run(
-        `INSERT INTO users (
-          id, email, password, owner_name, business_name, phone, address, 
-          tagline, services, special_notes, menus
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          userId, email, hashedPassword, ownerName, businessName, phone, 
-          address, tagline, services, specialNotes, '[]'
-        ],
-        function(err) {
-          if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ error: 'Failed to create user' });
-          }
+      // Create new user with profile data
+      const userData = {
+        id: userId,
+        email: email,
+        password: hashedPassword,
+        owner_name: ownerName,
+        business_name: businessName,
+        phone: phone,
+        address: address,
+        tagline: tagline,
+        services: services,
+        special_notes: specialNotes,
+        menus: []
+      };
 
-          // Generate JWT token
-          const token = jwt.sign(
-            { userId: userId, email: email },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-          );
+      await database.createUser(userData);
 
-          // Return user data in the format expected by frontend
-          const userData = {
-            id: userId,
-            email: email,
-            ownerName: ownerName,
-            businessName: businessName,
-            phone: phone,
-            address: address,
-            tagline: tagline,
-            services: services,
-            specialNotes: specialNotes,
-            menus: [],
-            createdAt: new Date().toISOString()
-          };
-
-          res.status(201).json({
-            message: 'User created successfully',
-            user: userData,
-            token: token
-          });
-        }
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: userId, email: email },
+        JWT_SECRET,
+        { expiresIn: '7d' }
       );
-    });
+
+      // Return user data in the format expected by frontend
+      const responseData = {
+        id: userId,
+        email: email,
+        ownerName: ownerName,
+        businessName: businessName,
+        phone: phone,
+        address: address,
+        tagline: tagline,
+        services: services,
+        specialNotes: specialNotes,
+        menus: [],
+        createdAt: new Date().toISOString()
+      };
+
+      res.status(201).json({
+        message: 'User created successfully',
+        user: responseData,
+        token: token
+      });
+    } catch (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({ error: 'Database error during registration' });
+    }
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -295,7 +218,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 // User login
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -304,51 +227,46 @@ app.post('/api/login', (req, res) => {
     }
 
     // Find user by email
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
+    const user = await database.findUserByEmail(email);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
 
-      if (!row) {
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
+    // Check password
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
 
-      // Check password
-      const validPassword = await bcrypt.compare(password, row.password);
-      if (!validPassword) {
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: row.id, email: row.email },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      );
+    // Return complete user profile data
+    const userData = {
+      id: user.id,
+      email: user.email,
+      ownerName: user.owner_name || '',
+      businessName: user.business_name || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      tagline: user.tagline || 'Tasty catering & events',
+      services: user.services || 'Catering, Events, Celebrations',
+      specialNotes: user.special_notes || '',
+      logoDataUrl: user.logo_data_url || '',
+      ganapatiDataUrl: user.ganapati_data_url || '',
+      menus: user.menus || [],
+      createdAt: user.created_at
+    };
 
-      // Return complete user profile data
-      const userData = {
-        id: row.id,
-        email: row.email,
-        ownerName: row.owner_name || '',
-        businessName: row.business_name || '',
-        phone: row.phone || '',
-        address: row.address || '',
-        tagline: row.tagline || 'Tasty catering & events',
-        services: row.services || 'Catering, Events, Celebrations',
-        specialNotes: row.special_notes || '',
-        logoDataUrl: row.logo_data_url || '',
-        ganapatiDataUrl: row.ganapati_data_url || '',
-        menus: JSON.parse(row.menus || '[]'),
-        createdAt: row.created_at
-      };
-
-      res.json({
-        message: 'Login successful',
-        user: userData,
-        token: token
-      });
+    res.json({
+      message: 'Login successful',
+      user: userData,
+      token: token
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -357,39 +275,39 @@ app.post('/api/login', (req, res) => {
 });
 
 // Get current user (verify token)
-app.get('/api/user', authenticateToken, (req, res) => {
-  // Get user details from database to ensure they still exist
-  db.get('SELECT * FROM users WHERE id = ?', [req.user.userId], (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ error: 'Database error' });
-    }
-
-    if (!row) {
+app.get('/api/user', authenticateToken, async (req, res) => {
+  try {
+    // Get user details from database to ensure they still exist
+    const user = await database.findUserById(req.user.userId);
+    
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     // Return complete user profile data
     const userData = {
-      id: row.id,
-      email: row.email,
-      ownerName: row.owner_name || '',
-      businessName: row.business_name || '',
-      phone: row.phone || '',
-      address: row.address || '',
-      tagline: row.tagline || 'Tasty catering & events',
-      services: row.services || 'Catering, Events, Celebrations',
-      specialNotes: row.special_notes || '',
-      logoDataUrl: row.logo_data_url || '',
-      ganapatiDataUrl: row.ganapati_data_url || '',
-      menus: JSON.parse(row.menus || '[]'),
-      createdAt: row.created_at
+      id: user.id,
+      email: user.email,
+      ownerName: user.owner_name || '',
+      businessName: user.business_name || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      tagline: user.tagline || 'Tasty catering & events',
+      services: user.services || 'Catering, Events, Celebrations',
+      specialNotes: user.special_notes || '',
+      logoDataUrl: user.logo_data_url || '',
+      ganapatiDataUrl: user.ganapati_data_url || '',
+      menus: user.menus || [],
+      createdAt: user.created_at
     };
 
     res.json({
       user: userData
     });
-  });
+  } catch (error) {
+    console.error('Database error:', error);
+    return res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Logout
@@ -398,7 +316,7 @@ app.post('/api/logout', authenticateToken, (req, res) => {
 });
 
 // Save menu
-app.post('/api/menus', authenticateToken, (req, res) => {
+app.post('/api/menus', authenticateToken, async (req, res) => {
   try {
     const { menuData } = req.body;
     const userId = req.user.userId;
@@ -408,39 +326,29 @@ app.post('/api/menus', authenticateToken, (req, res) => {
     }
 
     // Get current user's menus
-    db.get('SELECT menus FROM users WHERE id = ?', [userId], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
+    const user = await database.findUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-      if (!row) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+    // Parse existing menus and add new menu
+    const existingMenus = user.menus || [];
+    const newMenu = {
+      id: Date.now().toString(),
+      ...menuData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    const updatedMenus = [...existingMenus, newMenu];
 
-      // Parse existing menus and add new menu
-      const existingMenus = JSON.parse(row.menus || '[]');
-      const newMenu = {
-        id: Date.now().toString(),
-        ...menuData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      const updatedMenus = [...existingMenus, newMenu];
+    // Save back to database
+    await database.updateUserMenus(userId, updatedMenus);
 
-      // Save back to database
-      db.run('UPDATE users SET menus = ? WHERE id = ?', [JSON.stringify(updatedMenus), userId], (err) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({ error: 'Failed to save menu' });
-        }
-
-        res.json({
-          message: 'Menu saved successfully',
-          menu: newMenu
-        });
-      });
+    res.json({
+      message: 'Menu saved successfully',
+      menu: newMenu
     });
   } catch (error) {
     console.error('Save menu error:', error);
@@ -449,7 +357,7 @@ app.post('/api/menus', authenticateToken, (req, res) => {
 });
 
 // Update menu
-app.put('/api/menus/:menuId', authenticateToken, (req, res) => {
+app.put('/api/menus/:menuId', authenticateToken, async (req, res) => {
   try {
     const { menuId } = req.params;
     const { menuData } = req.body;
@@ -460,35 +368,25 @@ app.put('/api/menus/:menuId', authenticateToken, (req, res) => {
     }
 
     // Get current user's menus
-    db.get('SELECT menus FROM users WHERE id = ?', [userId], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
+    const user = await database.findUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-      if (!row) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+    // Parse existing menus and update the specific menu
+    const existingMenus = user.menus || [];
+    const updatedMenus = existingMenus.map(menu => 
+      menu.id === menuId 
+        ? { ...menu, ...menuData, updatedAt: new Date().toISOString() }
+        : menu
+    );
 
-      // Parse existing menus and update the specific menu
-      const existingMenus = JSON.parse(row.menus || '[]');
-      const updatedMenus = existingMenus.map(menu => 
-        menu.id === menuId 
-          ? { ...menu, ...menuData, updatedAt: new Date().toISOString() }
-          : menu
-      );
+    // Save back to database
+    await database.updateUserMenus(userId, updatedMenus);
 
-      // Save back to database
-      db.run('UPDATE users SET menus = ? WHERE id = ?', [JSON.stringify(updatedMenus), userId], (err) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({ error: 'Failed to update menu' });
-        }
-
-        res.json({
-          message: 'Menu updated successfully'
-        });
-      });
+    res.json({
+      message: 'Menu updated successfully'
     });
   } catch (error) {
     console.error('Update menu error:', error);
@@ -497,37 +395,27 @@ app.put('/api/menus/:menuId', authenticateToken, (req, res) => {
 });
 
 // Delete menu
-app.delete('/api/menus/:menuId', authenticateToken, (req, res) => {
+app.delete('/api/menus/:menuId', authenticateToken, async (req, res) => {
   try {
     const { menuId } = req.params;
     const userId = req.user.userId;
 
     // Get current user's menus
-    db.get('SELECT menus FROM users WHERE id = ?', [userId], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
+    const user = await database.findUserById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-      if (!row) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+    // Parse existing menus and remove the specific menu
+    const existingMenus = user.menus || [];
+    const updatedMenus = existingMenus.filter(menu => menu.id !== menuId);
 
-      // Parse existing menus and remove the specific menu
-      const existingMenus = JSON.parse(row.menus || '[]');
-      const updatedMenus = existingMenus.filter(menu => menu.id !== menuId);
+    // Save back to database
+    await database.updateUserMenus(userId, updatedMenus);
 
-      // Save back to database
-      db.run('UPDATE users SET menus = ? WHERE id = ?', [JSON.stringify(updatedMenus), userId], (err) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({ error: 'Failed to delete menu' });
-        }
-
-        res.json({
-          message: 'Menu deleted successfully'
-        });
-      });
+    res.json({
+      message: 'Menu deleted successfully'
     });
   } catch (error) {
     console.error('Delete menu error:', error);
